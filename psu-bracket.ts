@@ -50,7 +50,7 @@ export function createBracket(params: BracketParams) {
   const BRACKET_THICKNESS = params.bracketThickness;
   const HEIGHT_WITH_THICKNESS = params.height + BRACKET_THICKNESS;
   const WIDTH_WITH_THICKNESS = params.width + BRACKET_THICKNESS * 2;
-  const HOLE_DIAMETER = Math.min(params.holeDiameter, (params.earWidth / 2) - 1);
+  const HOLE_DIAMETER = Math.min(params.holeDiameter, (params.earWidth / 2) - 1, (params.depth / 2) - 1);
 
   const mainBody = Manifold.cube(
     [params.width + BRACKET_THICKNESS * 2,
@@ -142,7 +142,6 @@ function calculateSpacing({
 
   return positions;
 }
-
 // Default parameters
 export const defaultParams: BracketParams = {
   width: 35,
@@ -154,3 +153,4 @@ export const defaultParams: BracketParams = {
   ribbingThickness: 2,
   ribbingCount: 3
 };
+
