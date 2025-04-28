@@ -50,6 +50,7 @@ export function createBracket(params: BracketParams) {
   const BRACKET_THICKNESS = params.bracketThickness;
   const HEIGHT_WITH_THICKNESS = params.height + BRACKET_THICKNESS;
   const WIDTH_WITH_THICKNESS = params.width + BRACKET_THICKNESS * 2;
+  const HOLE_DIAMETER = Math.min(params.holeDiameter, (params.earWidth / 2) - 1);
 
   const mainBody = Manifold.cube(
     [params.width + BRACKET_THICKNESS * 2,
@@ -66,21 +67,21 @@ export function createBracket(params: BracketParams) {
   // Create the holes
   // Create mounting holes
   // TODO: Chamfer the hole for the screw
-  const hole = Manifold.cylinder(BRACKET_THICKNESS, params.holeDiameter, params.holeDiameter, 100).rotate([0, 90, 90]).translate([params.earWidth / 2, 0, params.depth / 2]);
+  const hole = Manifold.cylinder(BRACKET_THICKNESS, HOLE_DIAMETER, HOLE_DIAMETER, 100).rotate([0, 90, 90]).translate([params.earWidth / 2, 0, params.depth / 2]);
 
   // cut the hole in the ears
-  const earWithHole = Manifold.difference(ear, hole);
+  const earWithHole = params.holeDiameter ? Manifold.difference(ear, hole) : ear;
 
   const leftEar = earWithHole.translate([-params.earWidth, params.height + params.bracketThickness, 0]);
   const rightEar = earWithHole.translate([params.width + params.bracketThickness * 2, params.height + params.bracketThickness, 0]);
 
   const ears = Manifold.union(leftEar, rightEar);
 
+
   const ribbingSpacing = calculateSpacing({
     availableWidth: params.depth,
     itemWidth: params.ribbingThickness,
     itemCount: params.ribbingCount,
-    spacing: 'space-between'
   });
 
   // Create contour for the ribbing
@@ -104,19 +105,10 @@ export function createBracket(params: BracketParams) {
   ];
 
   const rightRibbing = leftRibbing.translate([-WIDTH_WITH_THICKNESS, 0, 0]).transform(mirrorMatrix);
+  const bothRibbings = params.ribbingCount > 1 ? [leftRibbing, rightRibbing] : [];
 
-  return Manifold.union(shell, ears, leftRibbing, rightRibbing);
-  // Combine all parts and subtract holes
-  return Manifold.difference(
-    Manifold.difference(
-      Manifold.union(
-        Manifold.union(mainBody, leftEar),
-        rightEar
-      ),
-      leftHole
-    ),
-    rightHole
-  );
+  return Manifold.union(shell, ears, ...bothRibbings);
+
 }
 
 function calculateSpacing({

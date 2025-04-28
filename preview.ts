@@ -46,7 +46,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     // Main light from top-right
     const mainLight = new THREE.DirectionalLight(0xffffff, 0.7);
     mainLight.position.set(100, 100, 0);
-    mainLight.castShadow = true;
+    mainLight.castShadow = false;
     mainLight.shadow.mapSize.width = 2048;
     mainLight.shadow.mapSize.height = 2048;
     mainLight.shadow.camera.near = 0.5;
