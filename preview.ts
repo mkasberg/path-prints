@@ -73,8 +73,8 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
     // Create material with edge emphasis
     const material = new MeshPhongMaterial({
-        color: 0x2196f3,
-        specular: 0x111111,
+      color: 0xff0090,
+      specular: 0xff0090,
         shininess: 5,
         flatShading: true // Use flat shading to emphasize edges
     });

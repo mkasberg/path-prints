@@ -1,4 +1,5 @@
 import Module from 'manifold-3d';
+import { exportTo3MF } from './export';
 
 // Load Manifold WASM library
 const wasm = await Module();
@@ -110,6 +111,7 @@ export function createBracket(params: BracketParams) {
   return Manifold.union(shell, ears, ...bothRibbings);
 
 }
+
 
 function calculateSpacing({
   availableWidth,
