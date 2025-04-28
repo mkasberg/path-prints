@@ -68,15 +68,15 @@ export function createBracket(params: BracketParams) {
   // Create the holes
   // Create mounting holes
   // TODO: Chamfer the hole for the screw
-  const hole = Manifold.cylinder(BRACKET_THICKNESS, HOLE_DIAMETER, HOLE_DIAMETER, 100).rotate([0, 90, 90]).translate([params.earWidth / 2, 0, params.depth / 2]);
 
-  // cut the hole in the ears
-  const earWithHole = params.holeDiameter ? Manifold.difference(ear, hole) : ear;
 
-  const leftEar = earWithHole.translate([-params.earWidth, params.height + params.bracketThickness, 0]);
-  const rightEar = earWithHole.translate([params.width + params.bracketThickness * 2, params.height + params.bracketThickness, 0]);
+  // // cut the hole in the ears
+  // const earWithHole = params.holeDiameter ? Manifold.difference(ear, hole) : ear;
 
-  const ears = Manifold.union(leftEar, rightEar);
+  // const leftEar = earWithHole.translate([-params.earWidth, params.height + params.bracketThickness, 0]);
+  // const rightEar = earWithHole.translate([params.width + params.bracketThickness * 2, params.height + params.bracketThickness, 0]);
+
+  // const ears = Manifold.union(leftEar, rightEar);
 
 
   const ribbingSpacing = calculateSpacing({
@@ -94,21 +94,29 @@ export function createBracket(params: BracketParams) {
     [RIBBING_WIDTH, 0],
   ], 'Negative');
   const singleRib = contour.extrude(params.ribbingThickness);
-  const ribbings = ribbingSpacing.map(spacing => singleRib.translate([0, 0, spacing]));
-  const leftRibbing = Manifold.union(ribbings).translate([-RIBBING_WIDTH, HEIGHT_WITH_THICKNESS - RIBBING_HEIGHT, 0]);
+  const ribbings = ribbingSpacing.map(spacing => singleRib.translate([RIBBING_WIDTH, -RIBBING_HEIGHT, spacing]));
 
-  // Create mirror transformation matrix for x-axis
-  const mirrorMatrix = [
-    -1, 0, 0, 0,  // Flip x
-    0, 1, 0, 0,   // Keep y
-    0, 0, 1, 0,   // Keep z
-    0, 0, 0, 1    // Keep w
-  ];
+  // Put the ears together
+  console.log({RIBBING_HEIGHT});
+  const hole = Manifold.cylinder(BRACKET_THICKNESS + RIBBING_HEIGHT, HOLE_DIAMETER, HOLE_DIAMETER, 100).rotate([0, 90, 90]).translate([params.earWidth / 2, -RIBBING_HEIGHT + BRACKET_THICKNESS, params.depth / 2]);
+  let earItem = Manifold.union(ear, ...ribbings);
+  if(HOLE_DIAMETER) earItem = earItem.subtract(hole);
+  const leftEar = earItem.translate([-params.earWidth, HEIGHT_WITH_THICKNESS, 0]);
+  const rightEar = leftEar.mirror([1, 0, 0]).translate([params.width + params.bracketThickness * 2, 0, 0]);
+  // const leftRibbing = Manifold.union(ribbings).translate([-RIBBING_WIDTH, HEIGHT_WITH_THICKNESS - RIBBING_HEIGHT, 0]);
 
-  const rightRibbing = leftRibbing.translate([-WIDTH_WITH_THICKNESS, 0, 0]).transform(mirrorMatrix);
-  const bothRibbings = params.ribbingCount > 1 ? [leftRibbing, rightRibbing] : [];
+  // // Create mirror transformation matrix for x-axis
+  // const mirrorMatrix = [
+  //   -1, 0, 0, 0,  // Flip x
+  //   0, 1, 0, 0,   // Keep y
+  //   0, 0, 1, 0,   // Keep z
+  //   0, 0, 0, 1    // Keep w
+  // ];
 
-  return Manifold.union(shell, ears, ...bothRibbings);
+  // const rightRibbing = leftRibbing.translate([-WIDTH_WITH_THICKNESS, 0, 0]).transform(mirrorMatrix);
+  // const bothRibbings = params.ribbingCount > 1 ? [leftRibbing, rightRibbing] : [];
+
+  return Manifold.union(shell, leftEar, rightEar);
 
 }
 
@@ -122,7 +130,7 @@ function calculateSpacing({
   itemWidth: number;
   itemCount: number;
 }) {
-  if (itemCount <= 0) return [];
+  if (itemCount <= 1) return [0];
 
   // Calculate the total space needed for all items
   const totalItemWidth = itemWidth * itemCount;
