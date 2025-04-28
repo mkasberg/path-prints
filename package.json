@@ -1,0 +1,22 @@
+{
+  "name": "simple-example",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Wes Bos (https://wesbos.com/)",
+  "license": "MIT",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "@types/three": "^0.176.0",
+    "manifold-3d": "^3.0.1",
+    "three": "^0.176.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "vite": "^6.3.3"
+  }
+}
