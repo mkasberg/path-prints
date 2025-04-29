@@ -1,65 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Manifold - three.js Example</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link
-      rel="shortcut icon"
-      type="image/png"
-      href="https://elalish.github.io/manifold/samples/models/favicon.png"
-    />
-    <style>
-      body {
-        margin: 0;
-        background-color: #f7f7f7;
-        font-family: "Rubik", sans-serif;
-        font-size: 16px;
-        line-height: 24px;
-        color: rgba(0, 0, 0, 0.87);
-        font-weight: 400;
-        -webkit-font-smoothing: antialiased;
-      }
-
-      p {
-        max-width: 700px;
-        margin: 1em;
-        text-align: left;
-      }
-
-      canvas {
-        display: block;
-        width: 100vw;
-        height: 100vw;
-        max-width: 600px;
-        max-height: 600px;
-      }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PSU Bracket Designer</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
-
   <body>
-    <p>
-      This example demonstrates interop between Manifold and Three.js with
-      minimal code - please open dev tools to inspect the source. Here we
-      generate two multi-material Three.js meshes and convert them to Manifolds
-      while building a mapping from material to Manifold ID. Then Boolean
-      operations are performed on the Manifolds and the result is converted back
-      to a Three.js mesh using the material mapping. The input cube has half red
-      faces and half normal-shaded, while the icosahedron has half blue faces
-      and half normal-shaded. The resulting mesh has three materials, since one
-      (normal-shaded) was common between the input models.
-    </p>
-    <p>
-      A slightly more complex example involving our library for GLTF
-      import/export and &lt;model-viewer&gt; can be found
-      <a href="model-viewer.html">here</a>.
-    </p>
-    <select>
-      <option value="union" selected>Union</option>
-      <option value="difference">Difference</option>
-      <option value="intersection">Intersection</option></select
-    ><br />
-    <canvas id="output"></canvas>
+    <canvas class="preview" id="preview"></canvas>
+    <div class="controls" id="controls">
+      <div class="control-group">
+        <label for="width">Width</label>
+        <input type="range" id="width" min="30" max="200" step="1" value="57" />
+        <div class="value-display" id="width-value">57</div>
+      </div>
+      <div class="control-group">
+        <label for="height">Height</label>
+        <input type="range" id="height" min="5" max="200" step="1" value="15" />
+        <div class="value-display" id="height-value">15</div>
+      </div>
+      <div class="control-group">
+        <label for="depth">Depth</label>
+        <input type="range" id="depth" min="5" max="100" step="1" value="33" />
+        <div class="value-display" id="depth-value">33</div>
+      </div>
+
+      <div class="control-group">
+        <label for="bracket-thickness">Body Thickness</label>
+        <input
+          type="range"
+          id="bracket-thickness"
+          min="2"
+          max="10"
+          step="0.5"
+          value="3"
+        />
+        <div class="value-display" id="bracket-thickness-value">3</div>
+      </div>
+      <div class="control-group">
+        <label for="ribbing-count">Number of Ribs</label>
+        <input
+          type="range"
+          id="ribbing-count"
+          min="0"
+          max="10"
+          step="1"
+          value="3"
+        />
+        <div class="value-display" id="ribbing-count-value">3</div>
+      </div>
+      <div class="control-group">
+        <label for="ribbing-thickness">Rib Thickness</label>
+        <input
+          type="range"
+          id="ribbing-thickness"
+          min="1"
+          max="5"
+          step="0.5"
+          value="2"
+        />
+        <div class="value-display" id="ribbing-thickness-value">2</div>
+      </div>
+      <div class="control-group">
+        <label for="hole-diameter">Hole Diameter</label>
+        <input
+          type="range"
+          id="hole-diameter"
+          min="0"
+          max="8"
+          step="0.5"
+          value="4"
+        />
+        <div class="value-display" id="hole-diameter-value">4</div>
+      </div>
+      <div class="control-group">
+        <label for="ear-width">Ear Width</label>
+        <input
+          type="range"
+          id="ear-width"
+          min="5"
+          max="30"
+          step="1"
+          value="15"
+        />
+        <div class="value-display" id="ear-width-value">15</div>
+      </div>
+
+      <div class="control-group">
+        <button id="export-button">Export</button>
+      </div>
+    </div>
+
+    <script type="module" src="app.ts"></script>
   </body>
-  <script type="module" src="three.ts"></script>
 </html>
