@@ -1,4 +1,9 @@
-* {
+:root {
+  --color: green;
+}
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -13,12 +18,12 @@ body {
   color: #fff;
 }
 
-.preview {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+.app {
+  display: grid;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  width: 100%;
 }
 
 .preview canvas {
@@ -28,20 +33,12 @@ body {
 }
 
 .controls {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 500px;
-  max-height: calc(100vh - 40px);
   padding: 20px;
+  gap: 20px 20px;
+  width: 100%;
   background: rgba(0, 0, 0, 0.8);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
 }
 
 .controls::-webkit-scrollbar {
@@ -58,7 +55,6 @@ body {
 }
 
 .control-group {
-  margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -70,24 +66,34 @@ body {
 }
 
 label {
-  flex: 0 0 180px;
   font-size: 14px;
   font-weight: 500;
   color: #fff;
   text-align: right;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 input[type="range"] {
   flex: 1;
-  min-width: 0;
+  min-width: 100px;
   height: 4px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   outline: none;
   -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  height: 15px;
+  width: 15px;
+  border-radius: 50%;
+  background: var(--color);
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: var(--color);
 }
 
 .value-display {

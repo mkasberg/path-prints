@@ -10,71 +10,58 @@ interface BracketParams {
   ribbingCount: number;
   ribbingThickness: number;
   holeDiameter: number;
-  holeOffset: number;
   earWidth: number;
+  hasBottom: boolean;
 }
 
 // Initialize the preview
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
 const updateBracket = setupPreview(canvas);
 
+const controls = document.querySelector<HTMLFormElement>("#controls");
+
 // Get all range inputs
-const inputs = {
-  width: document.getElementById("width") as HTMLInputElement,
-  depth: document.getElementById("depth") as HTMLInputElement,
-  height: document.getElementById("height") as HTMLInputElement,
-  "bracket-thickness": document.getElementById("bracket-thickness") as HTMLInputElement,
-  "ribbing-count": document.getElementById("ribbing-count") as HTMLInputElement,
-  "ribbing-thickness": document.getElementById("ribbing-thickness") as HTMLInputElement,
-  "hole-diameter": document.getElementById("hole-diameter") as HTMLInputElement,
-  "ear-width": document.getElementById("ear-width") as HTMLInputElement,
-};
-
-// Get all value displays
-const displays = {
-  width: document.getElementById("width-value") as HTMLDivElement,
-  depth: document.getElementById("depth-value") as HTMLDivElement,
-  height: document.getElementById("height-value") as HTMLDivElement,
-  "bracket-thickness": document.getElementById("bracket-thickness-value") as HTMLDivElement,
-  "ribbing-count": document.getElementById("ribbing-count-value") as HTMLDivElement,
-  "ribbing-thickness": document.getElementById("ribbing-thickness-value") as HTMLDivElement,
-  "hole-diameter": document.getElementById("hole-diameter-value") as HTMLDivElement,
-  "ear-width": document.getElementById("ear-width-value") as HTMLDivElement,
-};
+const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []);
 
 
-function getParams(): BracketParams {
-  const params: BracketParams = {
-    width: parseFloat(inputs.width.value),
-    depth: parseFloat(inputs.depth.value),
-    height: parseFloat(inputs.height.value),
-    bracketThickness: parseFloat(inputs["bracket-thickness"].value),
-    ribbingCount: parseInt(inputs["ribbing-count"].value),
-    ribbingThickness: parseFloat(inputs["ribbing-thickness"].value),
-    holeDiameter: parseFloat(inputs["hole-diameter"].value),
-    holeOffset: 5, // Default value from psu-bracket.ts
-    earWidth: parseFloat(inputs["ear-width"].value),
-  };
-  return params;
+function parseFormData(data: FormData) {
+  const params: Record<string, any> = {};
+  for(const [key, value] of data.entries()) {
+    // First see if it's a checkbox
+    if(value === "on") {
+      params[key] = true;
+    } else {
+      const maybeNumber = parseFloat(value);
+      params[key] = isNaN(maybeNumber) ? value : maybeNumber;
+    }
+  }
+  console.log(params);
+  return params as BracketParams;
 }
 
-// Function to update the bracket
-function update(): void {
-  const params = getParams();
+
+function displayValues(params: BracketParams) {
+  for(const input of inputs) {
+    const label = input.nextElementSibling as HTMLDivElement;
+    const unit = input.getAttribute("data-unit") ?? 'mm';
+    if(label && label.classList.contains('value-display')) {
+      label.textContent = `${input.value}${unit}`;
+    }
+  }
+  // Also pop the color on the root so we can use in css
+  document.documentElement.style.setProperty('--color', params.color);
+}
+
+function handleInput(e: Event) {
+  const data = new FormData(controls);
+  const params = parseFormData(data);
+  displayValues(params);
   updateBracket(params);
 }
 
-// Add event listeners to all inputs
-Object.entries(inputs).forEach(([key, input]) => {
-  input.addEventListener("input", () => {
-    displays[key].textContent = `${input.value}mm`;
-    update();
-  });
-  displays[key].textContent = `${input.value}mm`;
-});
+controls.addEventListener("input", handleInput);
+handleInput(); // initial update
 
-// Initial update
-update();
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {

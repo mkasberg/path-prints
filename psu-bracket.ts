@@ -38,11 +38,11 @@ type BracketParams = {
   depth: number;
   height: number;
   holeDiameter: number;
-  holeOffset: number;
   earWidth: number;
   bracketThickness: number;
   ribbingThickness: number;
   ribbingCount: number;
+  hasBottom: boolean;
 }
 
 // Function to create the bracket with given parameters
@@ -59,25 +59,12 @@ export function createBracket(params: BracketParams) {
     params.depth]
   );
 
-  const cutOut = Manifold.cube([params.width, params.height + BRACKET_THICKNESS, params.depth]).translate([0, BRACKET_THICKNESS, 0]).translate([BRACKET_THICKNESS, 0, 0])
+  const cutOut = Manifold.cube([params.width, params.height + BRACKET_THICKNESS, params.depth]).translate([0, BRACKET_THICKNESS, params.hasBottom ? -BRACKET_THICKNESS : 0]).translate([BRACKET_THICKNESS, 0, 0])
 
   const shell = Manifold.difference(mainBody, cutOut);
 
   // Create mounting ears
   const ear = Manifold.cube([params.earWidth, BRACKET_THICKNESS, params.depth]);
-  // Create the holes
-  // Create mounting holes
-  // TODO: Chamfer the hole for the screw
-
-
-  // // cut the hole in the ears
-  // const earWithHole = params.holeDiameter ? Manifold.difference(ear, hole) : ear;
-
-  // const leftEar = earWithHole.translate([-params.earWidth, params.height + params.bracketThickness, 0]);
-  // const rightEar = earWithHole.translate([params.width + params.bracketThickness * 2, params.height + params.bracketThickness, 0]);
-
-  // const ears = Manifold.union(leftEar, rightEar);
-
 
   const ribbingSpacing = calculateSpacing({
     availableWidth: params.depth,
@@ -97,27 +84,12 @@ export function createBracket(params: BracketParams) {
   const ribbings = ribbingSpacing.map(spacing => singleRib.translate([RIBBING_WIDTH, -RIBBING_HEIGHT, spacing]));
 
   // Put the ears together
-  console.log({RIBBING_HEIGHT});
   const hole = Manifold.cylinder(BRACKET_THICKNESS + RIBBING_HEIGHT, HOLE_DIAMETER, HOLE_DIAMETER, 100).rotate([0, 90, 90]).translate([params.earWidth / 2, -RIBBING_HEIGHT + BRACKET_THICKNESS, params.depth / 2]);
-  let earItem = Manifold.union(ear, ...ribbings);
-  if(HOLE_DIAMETER) earItem = earItem.subtract(hole);
+  let earItem = Manifold.union([ear, ...params.ribbingCount > 0 ? ribbings : []]);
+  if (HOLE_DIAMETER) earItem = earItem.subtract(hole);
   const leftEar = earItem.translate([-params.earWidth, HEIGHT_WITH_THICKNESS, 0]);
   const rightEar = leftEar.mirror([1, 0, 0]).translate([params.width + params.bracketThickness * 2, 0, 0]);
-  // const leftRibbing = Manifold.union(ribbings).translate([-RIBBING_WIDTH, HEIGHT_WITH_THICKNESS - RIBBING_HEIGHT, 0]);
-
-  // // Create mirror transformation matrix for x-axis
-  // const mirrorMatrix = [
-  //   -1, 0, 0, 0,  // Flip x
-  //   0, 1, 0, 0,   // Keep y
-  //   0, 0, 1, 0,   // Keep z
-  //   0, 0, 0, 1    // Keep w
-  // ];
-
-  // const rightRibbing = leftRibbing.translate([-WIDTH_WITH_THICKNESS, 0, 0]).transform(mirrorMatrix);
-  // const bothRibbings = params.ribbingCount > 1 ? [leftRibbing, rightRibbing] : [];
-
-  return Manifold.union(shell, leftEar, rightEar);
-
+  return Manifold.union([shell, leftEar, rightEar]);
 }
 
 
@@ -152,15 +124,3 @@ function calculateSpacing({
 
   return positions;
 }
-// Default parameters
-export const defaultParams: BracketParams = {
-  width: 35,
-  depth: 20,
-  height: 15,
-  bracketThickness: 3,
-  holeDiameter: 3.5,
-  earWidth: 10,
-  ribbingThickness: 2,
-  ribbingCount: 3
-};
-

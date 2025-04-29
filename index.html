@@ -7,88 +7,126 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <canvas class="preview" id="preview"></canvas>
-    <div class="controls" id="controls">
-      <div class="control-group">
-        <label for="width">Width</label>
-        <input type="range" id="width" min="30" max="200" step="1" value="57" />
-        <div class="value-display" id="width-value">57</div>
+    <div class="app">
+      <div class="preview">
+        <canvas id="preview"></canvas>
       </div>
-      <div class="control-group">
-        <label for="height">Height</label>
-        <input type="range" id="height" min="5" max="200" step="1" value="15" />
-        <div class="value-display" id="height-value">15</div>
-      </div>
-      <div class="control-group">
-        <label for="depth">Depth</label>
-        <input type="range" id="depth" min="5" max="100" step="1" value="33" />
-        <div class="value-display" id="depth-value">33</div>
-      </div>
+      <form class="controls" id="controls">
+        <div class="control-group">
+          <label for="width">Width</label>
+          <input
+            type="range"
+            id="width"
+            name="width"
+            min="30"
+            max="200"
+            step="1"
+            value="57"
+          />
+          <div class="value-display" id="widthValue">57</div>
+        </div>
+        <div class="control-group">
+          <label for="height">Height</label>
+          <input
+            type="range"
+            id="height"
+            name="height"
+            min="5"
+            max="200"
+            step="1"
+            value="15"
+          />
+          <div class="value-display" id="heightValue">15</div>
+        </div>
+        <div class="control-group">
+          <label for="depth">Depth</label>
+          <input
+            type="range"
+            id="depth"
+            name="depth"
+            min="5"
+            max="100"
+            step="1"
+            value="33"
+          />
+          <div class="value-display" id="depthValue">33</div>
+        </div>
 
-      <div class="control-group">
-        <label for="bracket-thickness">Body Thickness</label>
-        <input
-          type="range"
-          id="bracket-thickness"
-          min="2"
-          max="10"
-          step="0.5"
-          value="3"
-        />
-        <div class="value-display" id="bracket-thickness-value">3</div>
-      </div>
-      <div class="control-group">
-        <label for="ribbing-count">Number of Ribs</label>
-        <input
-          type="range"
-          id="ribbing-count"
-          min="0"
-          max="10"
-          step="1"
-          value="3"
-        />
-        <div class="value-display" id="ribbing-count-value">3</div>
-      </div>
-      <div class="control-group">
-        <label for="ribbing-thickness">Rib Thickness</label>
-        <input
-          type="range"
-          id="ribbing-thickness"
-          min="1"
-          max="5"
-          step="0.5"
-          value="2"
-        />
-        <div class="value-display" id="ribbing-thickness-value">2</div>
-      </div>
-      <div class="control-group">
-        <label for="hole-diameter">Hole Diameter</label>
-        <input
-          type="range"
-          id="hole-diameter"
-          min="0"
-          max="8"
-          step="0.5"
-          value="4"
-        />
-        <div class="value-display" id="hole-diameter-value">4</div>
-      </div>
-      <div class="control-group">
-        <label for="ear-width">Ear Width</label>
-        <input
-          type="range"
-          id="ear-width"
-          min="5"
-          max="30"
-          step="1"
-          value="15"
-        />
-        <div class="value-display" id="ear-width-value">15</div>
-      </div>
+        <div class="control-group">
+          <label for="bracketThickness">Body Thickness</label>
+          <input
+            type="range"
+            id="bracketThickness"
+            name="bracketThickness"
+            min="2"
+            max="10"
+            step="0.5"
+            value="3"
+          />
+          <div class="value-display" id="bracketThicknessValue">3</div>
+        </div>
+        <div class="control-group">
+          <label for="ribbingCount">Rib Count</label>
+          <input
+            type="range"
+            id="ribbingCount"
+            name="ribbingCount"
+            data-unit=""
+            min="0"
+            max="10"
+            step="1"
+            value="3"
+          />
+          <div class="value-display" id="ribbingCountValue">3</div>
+        </div>
+        <div class="control-group">
+          <label for="ribbingThickness">Rib Thickness</label>
+          <input
+            type="range"
+            id="ribbingThickness"
+            name="ribbingThickness"
+            min="1"
+            max="5"
+            step="0.5"
+            value="2"
+          />
+          <div class="value-display" id="ribbingThicknessValue">2</div>
+        </div>
+        <div class="control-group">
+          <label for="holeDiameter">Hole Diameter</label>
+          <input
+            type="range"
+            id="holeDiameter"
+            name="holeDiameter"
+            min="0"
+            max="8"
+            step="0.5"
+            value="3"
+          />
+          <div class="value-display" id="holeDiameterValue">4</div>
+        </div>
+        <div class="control-group">
+          <label for="earWidth">Ear Width</label>
+          <input
+            type="range"
+            id="earWidth"
+            name="earWidth"
+            min="5"
+            max="30"
+            step="1"
+            value="15"
+          />
+          <div class="value-display" id="earWidthValue">15</div>
+        </div>
 
-      <div class="control-group">
-        <button id="export-button">Export</button>
-      </div>
+        <div class="control-group">
+          <label for="hasBottom">Has Bottom</label>
+          <input type="checkbox" id="hasBottom" name="hasBottom" />
+          <label for="hasBottom">color</label>
+          <input type="color" id="color" name="color" value="#44ff00" />
+          <button id="export-button">Export</button>
+        </div>
+      </form>
     </div>
 
     <script type="module" src="app.ts"></script>
