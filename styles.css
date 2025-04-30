@@ -64,6 +64,7 @@ a {
   width: 100% !important;
   height: 100% !important;
   display: block;
+  touch-action: none;
 }
 
 .controls {
@@ -74,6 +75,7 @@ a {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   align-content: start;
+  touch-action: none;
 }
 
 .controls::-webkit-scrollbar {
