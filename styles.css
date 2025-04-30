@@ -28,7 +28,6 @@ header {
   padding: 1cqi;
   gap: 1cqi;
   grid-column: 1 / -1;
-
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     text-align: center;
