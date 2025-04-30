@@ -71,7 +71,11 @@ export function createBracket(params: BracketParams) {
   if (HOLE_DIAMETER) earItem = earItem.subtract(hole);
   const leftEar = earItem.translate([-params.earWidth, HEIGHT_WITH_THICKNESS, 0]);
   const rightEar = leftEar.mirror([1, 0, 0]).translate([params.width + params.bracketThickness * 2, 0, 0]);
-  return Manifold.union([shell, leftEar, rightEar]);
+  const bracket = Manifold.union([shell, leftEar, rightEar]);
+  // center the bracket on the origin
+  const size = bracket.boundingBox();
+  const [x, y, z] = size.max;
+  return bracket.translate([-x / 2, 0, -z / 2]);
 }
 
 

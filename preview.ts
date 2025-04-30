@@ -12,8 +12,6 @@ interface BracketParams {
   earWidth: number;
 }
 
-THREE.ColorManagement.legacyMode = false;
-
 
 export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: BracketParams) => void) {
   // Set up Three.js scene
@@ -22,7 +20,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Create camera with a better initial position
   const camera = new PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.set(100, 100, 100);
+  camera.position.set(100, 100, 150);
   camera.lookAt(0, 0, 0);
 
   // Set up Three.js renderer with better quality settings
@@ -90,7 +88,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     let cameraZ = Math.abs(maxDim / Math.tan(fov / 2)) * 0.9;
 
     // Set camera position with a better angle.
-    camera.position.set(camera.position.x, camera.position.y, cameraZ * 0.7);
+    camera.position.set(camera.position.x, camera.position.y, camera.position.z);
 
     camera.lookAt(center);
 
@@ -156,6 +154,12 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
+
+    // Add constant rotation around X axis
+    const rotationSpeed = 0.005; // Adjust this value to change rotation speed
+    camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeed);
+    camera.lookAt(0, 0, 0);
+
     renderer.render(scene, camera);
   }
 
