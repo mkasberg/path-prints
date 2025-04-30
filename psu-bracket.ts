@@ -1,37 +1,9 @@
 import Module from 'manifold-3d';
-import { exportTo3MF } from './export';
 
 // Load Manifold WASM library
 const wasm = await Module();
 wasm.setup();
 const { Manifold, CrossSection } = wasm;
-
-// PSU dimensions
-const PSU_DEPTH = 20;
-const PSU_WIDTH = 35;
-const BRACKET_THICKNESS = 1;
-const MOUNTING_HOLE_DIAMETER = 3.5;
-const MOUNTING_HOLE_OFFSET = 5;
-
-// Create the mounting ears
-const earWidth = 10;
-const earHeight = BRACKET_THICKNESS;
-const earDepth = PSU_DEPTH + BRACKET_THICKNESS * 2;
-
-const leftEar = Manifold.cube(earWidth, earDepth, earHeight)
-  .translate(-earWidth, 0, 0);
-
-const rightEar = Manifold.cube(earWidth, earDepth, earHeight)
-  .translate(PSU_WIDTH + BRACKET_THICKNESS * 2, 0, 0);
-
-// Create mounting holes
-const hole = Manifold.cylinder(
-  BRACKET_THICKNESS,
-  MOUNTING_HOLE_DIAMETER / 2,
-  0,  // No rounding
-  0   // No segments
-);
-
 
 type BracketParams = {
   width: number;
@@ -53,6 +25,12 @@ export function createBracket(params: BracketParams) {
   const WIDTH_WITH_THICKNESS = params.width + BRACKET_THICKNESS * 2;
   const HOLE_DIAMETER = Math.min(params.holeDiameter, (params.earWidth / 2) - 1, (params.depth / 2) - 1);
 
+  const COMMAND_STRIP = {
+    LENGTH: 46,
+    WIDTH: 15.8,
+    THICKNESS: 1.6,
+  }
+
   const mainBody = Manifold.cube(
     [params.width + BRACKET_THICKNESS * 2,
     params.height + BRACKET_THICKNESS * 2,
@@ -65,6 +43,10 @@ export function createBracket(params: BracketParams) {
 
   // Create mounting ears
   const ear = Manifold.cube([params.earWidth, BRACKET_THICKNESS, params.depth]);
+
+
+  // Create the command strip cutout
+  const commandStripCutout = Manifold.cube([COMMAND_STRIP.WIDTH, COMMAND_STRIP.THICKNESS, COMMAND_STRIP.LENGTH]);
 
   const ribbingSpacing = calculateSpacing({
     availableWidth: params.depth,
@@ -124,3 +106,15 @@ function calculateSpacing({
 
   return positions;
 }
+
+export const defaultParams: BracketParams = {
+  width: 35.5,
+  depth: 16,
+  height: 15,
+  holeDiameter: 3.5,
+  earWidth: 10,
+  bracketThickness: 1,
+  ribbingThickness: 1,
+  ribbingCount: 0,
+  hasBottom: false,
+};

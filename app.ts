@@ -35,7 +35,6 @@ function parseFormData(data: FormData) {
       params[key] = isNaN(maybeNumber) ? value : maybeNumber;
     }
   }
-  console.log(params);
   return params as BracketParams;
 }
 
@@ -59,19 +58,52 @@ function handleInput(e: Event) {
   updateBracket(params);
 }
 
+function updateUrl() {
+  const data = new FormData(controls);
+  const url = new URLSearchParams(data);
+  history.pushState({}, '', `?${url.toString()}`);
+}
+
+
 controls.addEventListener("input", handleInput);
-handleInput(); // initial update
+controls.addEventListener("change", updateUrl);
+
+// On page load, check if there is a url param and parse it
+function restoreState() {
+
+  const url = new URLSearchParams(window.location.search);
+  const params = {
+    defaultParams,
+    ...parseFormData(url)
+  }
+  // Merge in any defaults
+  // Restore any params from the URL
+  for(const [key, value] of Object.entries(params)) {
+    console.log(key, value);
+    const input = document.getElementById(key) as HTMLInputElement;
+    if(input) {
+      input.value = value.toString();
+    }
+  }
+  // trigger an input event to update the values
+  const event = new Event('input', { bubbles: true });
+  controls.dispatchEvent(event);
+}
+
+
+restoreState();
 
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {
-  const params = getParams();
+  const params = parseFormData(new FormData(controls));
   const model = createBracket(params);
-  const blob = await exportTo3MF(model);
+  const dimensions = `${params.width}x${params.depth}x${params.height}`;
+  const blob = await exportTo3MF(model, dimensions);
   const url = URL.createObjectURL(blob);
   // download the blob
   const a = document.createElement("a");
   a.href = url;
-  a.download = "bracket.3mf";
+  a.download = `bracket-${dimensions}.3mf`;
   a.click();
 });

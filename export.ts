@@ -39,7 +39,7 @@ interface To3MF {
   header: Header;
 }
 
-export async function exportTo3MF(manifold: Manifold): Promise<Blob> {
+export async function exportTo3MF(manifold: Manifold, title: string): Promise<Blob> {
   const to3mf: To3MF = {
     meshes: [],
     components: [],
@@ -47,9 +47,9 @@ export async function exportTo3MF(manifold: Manifold): Promise<Blob> {
     precision: 7,
     header: {
       unit: 'millimeter',
-      title: 'ManifoldCAD.org model',
-      description: 'ManifoldCAD.org model',
-      application: 'ManifoldCAD.org',
+      title: title,
+      description: `${title} - Bracket Buddy by Wes Bos`,
+      application: 'Bracket Buddy by Wes Bos',
     }
   };
 
