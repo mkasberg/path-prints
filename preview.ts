@@ -141,6 +141,11 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Handle window resize
   window.addEventListener('resize', () => {
+    // hide the canvas for a second so the CSS grid can resize it
+    canvas.removeAttribute('style');
+    canvas.width = 0;
+    canvas.height = 0;
+    // then  the CSS will size it
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
