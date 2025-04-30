@@ -156,8 +156,8 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     controls.update();
 
     // Add constant rotation around X axis
-    const rotationSpeed = 0.005; // Adjust this value to change rotation speed
-    camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeed);
+    // const rotationSpeed = 0.005; // Adjust this value to change rotation speed
+    // camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeed);
     // camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
