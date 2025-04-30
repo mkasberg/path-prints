@@ -44,7 +44,6 @@ export function createBracket(params: BracketParams) {
   // Create mounting ears
   const ear = Manifold.cube([params.earWidth, BRACKET_THICKNESS, params.depth]);
 
-
   // Create the command strip cutout
   const commandStripCutout = Manifold.cube([COMMAND_STRIP.WIDTH, COMMAND_STRIP.THICKNESS, COMMAND_STRIP.LENGTH]);
 

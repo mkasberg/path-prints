@@ -21,7 +21,9 @@ const updateBracket = setupPreview(canvas);
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
 // Get all range inputs
-const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []);
+const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => !input.classList.contains('value-display'));
+// todo - I have a tip somewhere on an easy way to split this into two arrays
+const displayInputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => input.classList.contains('value-display'));
 
 
 function parseFormData(data: FormData) {
@@ -41,10 +43,11 @@ function parseFormData(data: FormData) {
 
 function displayValues(params: BracketParams) {
   for(const input of inputs) {
+    console.log(input);
     const label = input.nextElementSibling as HTMLDivElement;
     const unit = input.getAttribute("data-unit") ?? 'mm';
     if(label && label.classList.contains('value-display')) {
-      label.textContent = `${input.value}${unit}`;
+      label.value = `${input.value}`;
     }
   }
   // Also pop the color on the root so we can use in css
@@ -52,6 +55,11 @@ function displayValues(params: BracketParams) {
 }
 
 function handleInput(e: Event) {
+  // If someone types into a valueDisplay, update the input
+  if(e.target.classList.contains('value-display')) {
+    const input = e.target.previousElementSibling as HTMLInputElement;
+    input.value = e.target.value;
+  }
   const data = new FormData(controls);
   const params = parseFormData(data);
   displayValues(params);
@@ -79,7 +87,6 @@ function restoreState() {
   // Merge in any defaults
   // Restore any params from the URL
   for(const [key, value] of Object.entries(params)) {
-    console.log(key, value);
     const input = document.getElementById(key) as HTMLInputElement;
     if(input) {
       input.value = value.toString();
