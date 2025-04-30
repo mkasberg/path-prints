@@ -37,7 +37,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // Add grid helper with better visibility
-  const gridHelper = new GridHelper(200, 20, 0x444444, 0x444444);
+  const gridHelper = new GridHelper(800, 50, 0x444444, 0x444444);
   gridHelper.position.y = -0.01;
   scene.add(gridHelper);
 
