@@ -18,6 +18,26 @@ type BracketParams = {
   holeCount: number;
 }
 
+
+function roundedCube(size: [number, number, number], radius: number = 20, circularSegments: number = 90) {
+  const [width, height, depth] = size;
+  // the radius cannot be greater than half the smallest side
+  const maxRadius = Math.min(radius, width / 2, depth / 2);
+  const post = Manifold.cylinder(height, maxRadius, maxRadius, circularSegments).translate([-maxRadius, -maxRadius, 0]).rotate([0, 90, 90]);
+
+  const walkx = width - maxRadius * 2;
+  const walkz = depth - maxRadius * 2;
+
+  const roundedCube = Manifold.union([
+    post,
+    post.translate([walkx, 0, 0]),
+    post.translate([walkx, 0, walkz]),
+    post.translate([0, 0, walkz]),
+    // Manifold.cube([width, height, depth]),
+  ]).hull();
+  return roundedCube;
+}
+
 // Function to create the bracket with given parameters
 export function createBracket(params: BracketParams) {
   // Create the main bracket body
@@ -37,6 +57,8 @@ export function createBracket(params: BracketParams) {
     params.height + BRACKET_THICKNESS * 2,
     params.depth]
   );
+
+
 
   const cutOut = Manifold.cube([params.width, params.height + BRACKET_THICKNESS, params.depth]).translate([0, BRACKET_THICKNESS, params.hasBottom ? -BRACKET_THICKNESS : 0]).translate([BRACKET_THICKNESS, 0, 0])
 
@@ -66,7 +88,12 @@ export function createBracket(params: BracketParams) {
   const ribbings = ribbingSpacing.map(spacing => singleRib.translate([RIBBING_WIDTH, -RIBBING_HEIGHT, spacing]));
 
   // Put the ears together
-  const hole = Manifold.cylinder(BRACKET_THICKNESS + RIBBING_HEIGHT, HOLE_DIAMETER, HOLE_DIAMETER, 100).rotate([0, 90, 90]).translate([params.earWidth / 2, -RIBBING_HEIGHT + BRACKET_THICKNESS, params.depth / 2]);
+  const singleHole = Manifold.cylinder(BRACKET_THICKNESS + RIBBING_HEIGHT, HOLE_DIAMETER, HOLE_DIAMETER, 100).rotate([0, 90, 90])
+  const key = roundedCube([HOLE_DIAMETER, BRACKET_THICKNESS + RIBBING_HEIGHT, HOLE_DIAMETER * 2], 10).translate([-HOLE_DIAMETER / 2, 0, 0]);
+
+  const hole = Manifold.union([singleHole, ...params.keyHole ? [key] : []]).translate([params.earWidth / 2, -RIBBING_HEIGHT + BRACKET_THICKNESS, params.depth / 2]);
+
+
   let earItem = Manifold.union([ear, ...params.ribbingCount > 0 ? ribbings : []]);
 
   // Create multiple holes if needed
@@ -76,8 +103,10 @@ export function createBracket(params: BracketParams) {
       // Center single hole
       holes.push(hole);
     } else {
+      const size = hole.boundingBox();
+      const [x, y, z] = size.max;
       // Calculate spacing for multiple holes
-      const edgePadding = HOLE_DIAMETER * 1.5; // Add extra padding at edges
+      const edgePadding = Math.max(HOLE_DIAMETER * 3, 10); // Add extra padding at edges
       const totalSpace = params.depth - (edgePadding * 2); // Leave space at edges
       const spacing = totalSpace / (params.holeCount - 1);
 
@@ -151,4 +180,5 @@ export const defaultParams: BracketParams = {
   ribbingCount: 0,
   hasBottom: false,
   holeCount: 2,
+  keyHole: false,
 };
