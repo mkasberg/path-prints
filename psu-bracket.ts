@@ -15,6 +15,7 @@ type BracketParams = {
   ribbingThickness: number;
   ribbingCount: number;
   hasBottom: boolean;
+  holeCount: number;
 }
 
 // Function to create the bracket with given parameters
@@ -67,7 +68,27 @@ export function createBracket(params: BracketParams) {
   // Put the ears together
   const hole = Manifold.cylinder(BRACKET_THICKNESS + RIBBING_HEIGHT, HOLE_DIAMETER, HOLE_DIAMETER, 100).rotate([0, 90, 90]).translate([params.earWidth / 2, -RIBBING_HEIGHT + BRACKET_THICKNESS, params.depth / 2]);
   let earItem = Manifold.union([ear, ...params.ribbingCount > 0 ? ribbings : []]);
-  if (HOLE_DIAMETER) earItem = earItem.subtract(hole);
+
+  // Create multiple holes if needed
+  if (HOLE_DIAMETER) {
+    const holes = [];
+    if (params.holeCount === 1) {
+      // Center single hole
+      holes.push(hole);
+    } else {
+      // Calculate spacing for multiple holes
+      const edgePadding = HOLE_DIAMETER * 1.5; // Add extra padding at edges
+      const totalSpace = params.depth - (edgePadding * 2); // Leave space at edges
+      const spacing = totalSpace / (params.holeCount - 1);
+
+      for (let i = 0; i < params.holeCount; i++) {
+        const zPos = edgePadding + (i * spacing);
+        holes.push(hole.translate([0, 0, zPos - params.depth / 2]));
+      }
+    }
+    earItem = earItem.subtract(Manifold.union(holes));
+  }
+
   const leftEar = earItem.translate([-params.earWidth, HEIGHT_WITH_THICKNESS, 0]);
   const rightEar = leftEar.mirror([1, 0, 0]).translate([params.width + params.bracketThickness * 2, 0, 0]);
   const bracket = Manifold.union([shell, leftEar, rightEar]);
@@ -87,7 +108,7 @@ function calculateSpacing({
   itemWidth: number;
   itemCount: number;
 }) {
-  if (itemCount <= 1) return [0];
+  if (itemCount === 1) return [availableWidth / 2]; // Center single hole
 
   // Calculate the total space needed for all items
   const totalItemWidth = itemWidth * itemCount;
@@ -107,6 +128,15 @@ function calculateSpacing({
     positions.push(startPosition);
   }
 
+  // Ensure the last hole is one hole diameter away from the edge
+  const lastPosition = positions[positions.length - 1];
+  if (lastPosition + itemWidth > availableWidth - itemWidth) {
+    const adjustment = (lastPosition + itemWidth) - (availableWidth - itemWidth);
+    positions.forEach((pos, i) => {
+      positions[i] = pos - (adjustment * i / (positions.length - 1));
+    });
+  }
+
   return positions;
 }
 
@@ -120,4 +150,5 @@ export const defaultParams: BracketParams = {
   ribbingThickness: 1,
   ribbingCount: 0,
   hasBottom: false,
+  holeCount: 2,
 };

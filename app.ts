@@ -43,7 +43,6 @@ function parseFormData(data: FormData) {
 
 function displayValues(params: BracketParams) {
   for(const input of inputs) {
-    console.log(input);
     const label = input.nextElementSibling as HTMLDivElement;
     const unit = input.getAttribute("data-unit") ?? 'mm';
     if(label && label.classList.contains('value-display')) {

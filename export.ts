@@ -56,7 +56,6 @@ export async function exportTo3MF(manifold: Manifold, title: string): Promise<Bl
   // Get the mesh from the manifold
   const mesh = manifold.getMesh();
 
-  console.log({ mesh });
 
   // Convert vertices to Float32Array
   const vertices = mesh.numProp === 3 ?
@@ -82,20 +81,15 @@ export async function exportTo3MF(manifold: Manifold, title: string): Promise<Bl
   // Add the item directly without creating a component
   to3mf.items.push({ objectID: meshId });
 
-  console.log(to3mf);
-
   // Create the 3MF file
   const fileForRelThumbnail = new FileForRelThumbnail();
   fileForRelThumbnail.add3dModel('3D/3dmodel.model');
 
   const model = to3dmodel(to3mf as any);
-  console.log(model);
   const files: Zippable = {};
   files['3D/3dmodel.model'] = strToU8(model);
   files[fileForContentTypes.name] = strToU8(fileForContentTypes.content);
   files[fileForRelThumbnail.name] = strToU8(fileForRelThumbnail.content);
-
-  console.log(files);
 
   const zipFile = zipSync(files);
   return new Blob(
