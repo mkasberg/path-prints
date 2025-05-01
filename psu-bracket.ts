@@ -144,7 +144,7 @@ export const defaultParams: BracketParams = {
   width: 35.5,
   depth: 16,
   height: 15,
-  holeDiameter: 3.5,
+  holeDiameter: 2,
   earWidth: 10,
   bracketThickness: 1,
   ribbingThickness: 1,
