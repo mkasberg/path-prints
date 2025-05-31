@@ -124,6 +124,13 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     miniatureMesh = new ThreeMesh(geometry, material);
     miniatureMesh.castShadow = true;
     miniatureMesh.receiveShadow = true;
+    
+    // Rotate the mesh to align with Three.js coordinate system
+    miniatureMesh.rotation.x = -Math.PI / 2;
+    
+    // Translate the mesh to the positive Z quadrant
+    miniatureMesh.position.z = params.width;
+    
     scene.add(miniatureMesh);
 
     // Center and fit the object

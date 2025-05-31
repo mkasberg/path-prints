@@ -20,6 +20,8 @@ interface GpxMiniatureParams {
 // Initialize the preview
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
 const updateMiniature = setupPreview(canvas);
+// Render initial preview with default params
+updateMiniature(defaultParams);
 
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
@@ -78,8 +80,9 @@ function updateUrl() {
 }
 
 
-controls.addEventListener("input", handleInput);
-controls.addEventListener("change", updateUrl);
+// Temporarily disable form handling
+// controls.addEventListener("input", handleInput);
+// controls.addEventListener("change", updateUrl);
 
 // On page load, check if there is a url param and parse it
 function restoreState() {
@@ -101,7 +104,8 @@ function restoreState() {
 }
 
 
-restoreState();
+// Temporarily disable URL state restoration
+// restoreState();
 
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;

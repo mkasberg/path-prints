@@ -36,7 +36,7 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     (e - elevationMin) * 0.95 * mapPolylineHeight / elevationDiff + 0.05 * mapPolylineHeight
   );
 
-  let polyline = new Manifold();
+  const parts: Manifold[] = [];
   
   for (let i = 0; i < maxIdx - 1; i++) {
     const p0 = scaledPoints[i];
@@ -68,10 +68,11 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     const joint = Manifold.cylinder(h0, edgeWidth/2, edgeWidth/2)
       .translate([p0.x, p0.y, 0]);
 
-    polyline = Manifold.union([polyline, segment, joint]);
+    parts.push(segment);
+    parts.push(joint);
   }
 
-  return polyline;
+  return parts.length > 0 ? Manifold.union(parts) : new Manifold();
 }
 
 function createTextPlate(params: GpxMiniatureParams): Manifold {
