@@ -26,6 +26,20 @@ function halfAngleDifference(a2: number, a1: number): number {
   return (a2 - a1 + 360) / 2;
 }
 
+function createSlantedSegment(edgeLen: number, edgeWidth: number, h0: number, h1: number): Manifold {
+  // Create a cross section of the trapezoidal shape
+  const crossSection = new CrossSection([
+    [0, 0],       // bottom left
+    [edgeLen, 0], // bottom right
+    [edgeLen, h1], // top right
+    [0, h0]       // top left
+  ]);
+
+  // Extrude up Z, rotate to the proper orientation (+Z resting on thy XY plane),
+  // and then translate to center on X axis.
+  return crossSection.extrude(edgeWidth).rotate([90, 0, 0]).translate([0, edgeWidth/2, 0]);
+}
+
 function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number, y: number }[], elevation: number[]): Manifold {
   const maxIdx = Math.round((params.outBack / 100) * scaledPoints.length - 1);
   const elevationMin = Math.min(...elevation);
@@ -58,18 +72,58 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     const anglePrev = Math.atan2(dyPrev, dxPrev);
     const angleNext = Math.atan2(dyNext, dxNext);
 
-    // Create edge segment
-    const segment = Manifold.cube([edgeLen, edgeWidth, h0])
-      .rotate([0, Math.atan2(h1 - h0, edgeLen), 0])
-      .translate([p0.x, p0.y, 0])
-      .rotate([0, 0, angle * 180 / Math.PI]);
+    // Create the slanted segment
+    let segment = createSlantedSegment(edgeLen, edgeWidth, h0, h1);
+
+    // Create cutting planes for joints
+    if (i < maxIdx - 1) {
+      const nextCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
+        .translate([edgeLen, -edgeWidth * 2, -1])
+        .rotate([0, 0, halfAngleDifference(angleNext, angle)]);
+      segment = segment.subtract(nextCutter);
+    }
+
+    if (i > 0) {
+      const prevCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
+        .translate([0, -edgeWidth * 2, -1])
+        .rotate([0, 0, 180 - halfAngleDifference(angle, anglePrev)]);
+      segment = segment.subtract(prevCutter);
+    }
+
+    // Transform segment to world position
+    segment = segment.rotate([0, 0, angle * 180 / Math.PI]).translate([p0.x, p0.y, 0]);
+    parts.push(segment);
 
     // Create joint cylinder
-    const joint = Manifold.cylinder(h0, edgeWidth/2, edgeWidth/2)
-      .translate([p0.x, p0.y, 0]);
+    let joint = Manifold.cylinder(h0, edgeWidth/2, edgeWidth/2, 12);
 
-    parts.push(segment);
+    // Cut joint with segment planes
+    const segmentCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
+      .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
+      .rotate([0, 0, angle]);
+    joint = joint.subtract(segmentCutter);
+
+    if (i > 0) {
+      const prevSegmentCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
+        .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
+        .rotate([0, 0, 180 + anglePrev]);
+      joint = joint.subtract(prevSegmentCutter);
+    }
+
+    // Transform joint to world position
+    joint = joint.translate([p0.x, p0.y, 0]);
     parts.push(joint);
+
+    // Add final cylinder at the end of the last segment
+    if (i === maxIdx - 2) {
+      let finalJoint = Manifold.cylinder(h1, edgeWidth/2, edgeWidth/2, 12);
+      const finalCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
+        .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
+        .rotate([0, 0, 180 + angle]);
+      finalJoint = finalJoint.subtract(finalCutter);
+      finalJoint = finalJoint.translate([p1.x, p1.y, 0]);
+      parts.push(finalJoint);
+    }
   }
 
   return parts.length > 0 ? Manifold.union(parts) : new Manifold();
