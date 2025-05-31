@@ -1,22 +1,25 @@
 import { exportTo3MF } from './export';
 import { setupPreview } from "./preview";
-import { createBracket, defaultParams } from "./psu-bracket";
+import { createGpxMiniature, defaultParams } from "./gpx-miniature";
 
-interface BracketParams {
+interface GpxMiniatureParams {
+  title: string;
+  fontSize: number;
+  outBack: number;
+  mapRotation: number;
+  elevationValues: number[];
+  latLngValues: [number, number][];
   width: number;
-  depth: number;
-  height: number;
-  bracketThickness: number;
-  ribbingCount: number;
-  ribbingThickness: number;
-  holeDiameter: number;
-  earWidth: number;
-  hasBottom: boolean;
+  plateDepth: number;
+  thickness: number;
+  textThickness: number;
+  margin: number;
+  maxPolylineHeight: number;
 }
 
 // Initialize the preview
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
-const updateBracket = setupPreview(canvas);
+const updateMiniature = setupPreview(canvas);
 
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
@@ -37,13 +40,13 @@ function parseFormData(data: FormData) {
       params[key] = isNaN(maybeNumber) ? value : maybeNumber;
     }
   }
-  return params as BracketParams;
+  return params as GpxMiniatureParams;
 }
 
 
-function displayValues(params: BracketParams) {
+function displayValues(params: GpxMiniatureParams) {
   for(const input of inputs) {
-    const label = input.nextElementSibling as HTMLDivElement;
+    const label = input.nextElementSibling as HTMLInputElement;
     const unit = input.getAttribute("data-unit") ?? 'mm';
     if(label && label.classList.contains('value-display')) {
       label.value = `${input.value}`;
@@ -60,9 +63,12 @@ function handleInput(e: Event) {
     input.value = e.target.value;
   }
   const data = new FormData(controls);
-  const params = parseFormData(data);
+  const params = {
+    ...defaultParams,
+    ...parseFormData(data)
+  };
   displayValues(params);
-  updateBracket(params);
+  updateMiniature(params);
 }
 
 function updateUrl() {
@@ -77,13 +83,11 @@ controls.addEventListener("change", updateUrl);
 
 // On page load, check if there is a url param and parse it
 function restoreState() {
-
   const url = new URLSearchParams(window.location.search);
   const params = {
-    defaultParams,
+    ...defaultParams,
     ...parseFormData(url)
-  }
-  // Merge in any defaults
+  };
   // Restore any params from the URL
   for(const [key, value] of Object.entries(params)) {
     const input = document.getElementById(key) as HTMLInputElement;
@@ -102,14 +106,17 @@ restoreState();
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {
-  const params = parseFormData(new FormData(controls));
-  const model = createBracket(params);
-  const dimensions = `${params.width}x${params.depth}x${params.height}`;
+  const params = {
+    ...defaultParams,
+    ...parseFormData(new FormData(controls))
+  };
+  const model = createGpxMiniature(params);
+  const dimensions = `${params.width}x${params.plateDepth}x${params.thickness}`;
   const blob = await exportTo3MF(model, dimensions);
   const url = URL.createObjectURL(blob);
   // download the blob
   const a = document.createElement("a");
   a.href = url;
-  a.download = `bracket-${dimensions}.3mf`;
+  a.download = `gpx-miniature-${dimensions}.3mf`;
   a.click();
 });

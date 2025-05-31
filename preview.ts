@@ -1,19 +1,24 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BufferAttribute, BufferGeometry, Mesh as ThreeMesh, MeshStandardMaterial, PerspectiveCamera, Scene, WebGLRenderer, GridHelper, AxesHelper } from 'three';
-import { createBracket, defaultParams } from './psu-bracket.js';
+import { createGpxMiniature, defaultParams } from './gpx-miniature.js';
 
-interface BracketParams {
+interface GpxMiniatureParams {
+  title: string;
+  fontSize: number;
+  outBack: number;
+  mapRotation: number;
+  elevationValues: number[];
+  latLngValues: [number, number][];
   width: number;
-  depth: number;
-  height: number;
-  holeDiameter: number;
-  holeOffset: number;
-  earWidth: number;
+  plateDepth: number;
+  thickness: number;
+  textThickness: number;
+  margin: number;
+  maxPolylineHeight: number;
 }
 
-
-export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: BracketParams) => void) {
+export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: GpxMiniatureParams) => void) {
   // Set up Three.js scene
   const scene = new Scene();
   scene.background = new THREE.Color(0x1a1a1a);
@@ -72,13 +77,13 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     flatShading: true
   });
 
-  let bracketMesh: ThreeMesh | null = null;
+  let miniatureMesh: ThreeMesh | null = null;
 
   // Function to center and fit the object in view
   function centerAndFitObject() {
-    if (!bracketMesh) return;
+    if (!miniatureMesh) return;
 
-    const box = new THREE.Box3().setFromObject(bracketMesh);
+    const box = new THREE.Box3().setFromObject(miniatureMesh);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
@@ -97,31 +102,29 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     controls.update();
   }
 
-  // Function to update the bracket
-  function updateBracket(params: BracketParams) {
+  // Function to update the miniature
+  function updateMiniature(params: GpxMiniatureParams) {
     // Remove old mesh if it exists
-    if (bracketMesh) {
-      scene.remove(bracketMesh);
-      bracketMesh.geometry.dispose();
+    if (miniatureMesh) {
+      scene.remove(miniatureMesh);
+      miniatureMesh.geometry.dispose();
     }
 
-    material.color.set(params.color);
-
-    // Create new bracket
-    const bracket = createBracket(params);
+    // Create new miniature
+    const miniature = createGpxMiniature(params);
 
     // Convert to Three.js geometry
-    const mesh = bracket.getMesh();
+    const mesh = miniature.getMesh();
     const geometry = new BufferGeometry();
     geometry.setAttribute('position', new BufferAttribute(mesh.vertProperties, 3));
     geometry.setIndex(new BufferAttribute(mesh.triVerts, 1));
     geometry.computeVertexNormals();
 
     // Create new mesh with shadows
-    bracketMesh = new ThreeMesh(geometry, material);
-    bracketMesh.castShadow = true;
-    bracketMesh.receiveShadow = true;
-    scene.add(bracketMesh);
+    miniatureMesh = new ThreeMesh(geometry, material);
+    miniatureMesh.castShadow = true;
+    miniatureMesh.receiveShadow = true;
+    scene.add(miniatureMesh);
 
     // Center and fit the object
     centerAndFitObject();
@@ -154,17 +157,11 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
-
-    // Add constant rotation around X axis
-    // const rotationSpeed = 0.005; // Adjust this value to change rotation speed
-    // camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeed);
-    // camera.lookAt(0, 0, 0);
-
     renderer.render(scene, camera);
   }
 
   animate();
 
-  // Return function to update the bracket
-  return updateBracket;
+  // Return function to update the miniature
+  return updateMiniature;
 }
