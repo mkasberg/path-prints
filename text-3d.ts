@@ -1,27 +1,24 @@
 import Module from 'manifold-3d';
 import opentype from 'opentype.js';
+import robotoFontUrl from '@fontsource-variable/roboto/files/roboto-latin-400-normal.ttf?url';
 
 // Load Manifold WASM library
 const wasm = await Module();
 wasm.setup();
 const { Manifold, CrossSection } = wasm;
 
-// Default font URL - using a reliable open-source font
-const DEFAULT_FONT_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/static/Roboto-Regular.ttf';
-
 interface TextOptions {
   fontSize?: number;
   thickness?: number;
-  fontUrl?: string;
 }
 
 // Helper function to load a font
-async function loadFont(fontUrl: string = DEFAULT_FONT_URL): Promise<opentype.Font> {
+async function loadFont(): Promise<opentype.Font> {
   try {
-    return await opentype.load(fontUrl);
+    return await opentype.load(robotoFontUrl);
   } catch (error) {
     console.error('Error loading font:', error);
-    throw new Error(`Failed to load font from ${fontUrl}`);
+    throw new Error('Failed to load Roboto font');
   }
 }
 
@@ -132,12 +129,11 @@ export async function create3DText(
 ): Promise<Manifold> {
   const {
     fontSize = 72,
-    thickness = 10,
-    fontUrl = DEFAULT_FONT_URL
+    thickness = 10
   } = options;
 
   // Load the font
-  const font = await loadFont(fontUrl);
+  const font = await loadFont();
   
   // Create paths for the text
   const paths = font.getPaths(text, 0, 0, fontSize);

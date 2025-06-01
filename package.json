@@ -12,6 +12,7 @@
   "description": "",
   "type": "module",
   "dependencies": {
+    "@fontsource-variable/roboto": "^5.0.8",
     "@jscadui/3mf-export": "^0.5.0",
     "@types/three": "^0.176.0",
     "manifold-3d": "^3.0.1",
