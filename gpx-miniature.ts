@@ -68,9 +68,10 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     const edgeWidth = 1;
     const edgeLen = Math.sqrt(dx * dx + dy * dy) + 0.01;
     
-    const angle = Math.atan2(dy, dx);
-    const anglePrev = Math.atan2(dyPrev, dxPrev);
-    const angleNext = Math.atan2(dyNext, dxNext);
+    // All angles are in degrees! If a function returns radians, convert immediately.
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const anglePrev = Math.atan2(dyPrev, dxPrev) * 180 / Math.PI;
+    const angleNext = Math.atan2(dyNext, dxNext) * 180 / Math.PI;
 
     // Create the slanted segment
     let segment = createSlantedSegment(edgeLen, edgeWidth, h0, h1);
@@ -78,20 +79,21 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     // Create cutting planes for joints
     if (i < maxIdx - 1) {
       const nextCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
-        .translate([edgeLen, -edgeWidth * 2, -1])
-        .rotate([0, 0, halfAngleDifference(angleNext, angle)]);
+        .translate([0, -2 * edgeWidth, -1])
+        .rotate([0, 0, halfAngleDifference(angleNext, angle)])
+        .translate([edgeLen, 0, 0]);
       segment = segment.subtract(nextCutter);
     }
 
     if (i > 0) {
       const prevCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
-        .translate([0, -edgeWidth * 2, -1])
+        .translate([0, -2 * edgeWidth, -1])
         .rotate([0, 0, 180 - halfAngleDifference(angle, anglePrev)]);
       segment = segment.subtract(prevCutter);
     }
 
     // Transform segment to world position
-    segment = segment.rotate([0, 0, angle * 180 / Math.PI]).translate([p0.x, p0.y, 0]);
+    segment = segment.rotate([0, 0, angle]).translate([p0.x, p0.y, 0]);
     parts.push(segment);
 
     // Create joint cylinder
@@ -130,7 +132,7 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
 }
 
 function createTextPlate(params: GpxMiniatureParams): Manifold {
-  const angle = Math.atan(params.thickness / params.plateDepth);
+  const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
   
   // Create base plate
   const basePlate = Manifold.cube([params.width, params.plateDepth, params.thickness]);
@@ -139,8 +141,8 @@ function createTextPlate(params: GpxMiniatureParams): Manifold {
   const textSurface = new CrossSection([
     [0, 0],
     [params.width, 0],
-    [params.width, params.plateDepth * Math.cos(angle)],
-    [0, params.plateDepth * Math.cos(angle)]
+    [params.width, params.plateDepth * Math.cos(angle * Math.PI / 180)],
+    [0, params.plateDepth * Math.cos(angle * Math.PI / 180)]
   ]).extrude(params.textThickness);
 
   // Create text (Note: Manifold doesn't support text directly, we'd need to use a font rendering library)
@@ -148,7 +150,7 @@ function createTextPlate(params: GpxMiniatureParams): Manifold {
   const textPlaceholder = Manifold.cube([params.width * 0.8, params.fontSize, params.textThickness])
     .translate([params.width * 0.1, params.plateDepth * 0.3, params.thickness]);
 
-  return Manifold.union([basePlate, textSurface.rotate([angle * 180 / Math.PI, 0, 0]), textPlaceholder]);
+  return Manifold.union([basePlate, textSurface.rotate([angle, 0, 0]), textPlaceholder]);
 }
 
 export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
