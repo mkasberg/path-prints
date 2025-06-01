@@ -133,24 +133,21 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
 
 function createTextPlate(params: GpxMiniatureParams): Manifold {
   const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
-  
-  // Create base plate
-  const basePlate = Manifold.cube([params.width, params.plateDepth, params.thickness]);
-  
-  // Create angled text surface
-  const textSurface = new CrossSection([
-    [0, 0],
-    [params.width, 0],
-    [params.width, params.plateDepth * Math.cos(angle * Math.PI / 180)],
-    [0, params.plateDepth * Math.cos(angle * Math.PI / 180)]
-  ]).extrude(params.textThickness);
+
+  // Create angled text surface by intersecting
+  const textSurface = Manifold.intersection(
+    Manifold.cube([params.width, params.plateDepth, params.thickness]),
+    Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
+      .translate([0, 0, -params.thickness])
+      .rotate([angle, 0, 0])
+  )
 
   // Create text (Note: Manifold doesn't support text directly, we'd need to use a font rendering library)
   // For now, we'll just create a placeholder rectangle
-  const textPlaceholder = Manifold.cube([params.width * 0.8, params.fontSize, params.textThickness])
-    .translate([params.width * 0.1, params.plateDepth * 0.3, params.thickness]);
+  // const textPlaceholder = Manifold.cube([params.width * 0.8, params.fontSize, params.textThickness])
+  //   .translate([params.width * 0.1, params.plateDepth * 0.3, params.thickness]);
 
-  return Manifold.union([basePlate, textSurface.rotate([angle, 0, 0]), textPlaceholder]);
+  return Manifold.union([textSurface]);
 }
 
 export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
