@@ -185,12 +185,13 @@ export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
   
   // Create map polyline
   const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
+    .translate([-mapWidth/2, -mapWidth/2, 0])
+    .rotate([0, 0, params.mapRotation])
     .translate([
       params.margin + (params.width - 2 * params.margin) / 2,
       params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2,
-      params.thickness
+      params.thickness - 0.001
     ])
-    .rotate([0, 0, params.mapRotation]);
   
   return Manifold.union([base, textPlate, polyline]);
 }
