@@ -185,7 +185,7 @@ export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
   
   // Create map polyline
   const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
-    .translate([-mapWidth/2, -mapWidth/2, 0])
+    .translate([-mapWidth/2, -mapHeight/2, 0])
     .rotate([0, 0, params.mapRotation])
     .translate([
       params.margin + (params.width - 2 * params.margin) / 2,

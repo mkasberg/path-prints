@@ -129,7 +129,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     miniatureMesh.rotation.x = -Math.PI / 2;
     
     // Translate the mesh to the positive Z quadrant
-    miniatureMesh.position.z = params.width;
+    miniatureMesh.position.z = params.width + params.plateDepth;
     
     scene.add(miniatureMesh);
 
