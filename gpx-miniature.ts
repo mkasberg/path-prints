@@ -1,4 +1,5 @@
 import Module from 'manifold-3d';
+import { create3DText } from './text-3d';
 
 // Load Manifold WASM library
 const wasm = await Module();
@@ -68,15 +69,12 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     const edgeWidth = 1;
     const edgeLen = Math.sqrt(dx * dx + dy * dy) + 0.01;
     
-    // All angles are in degrees! If a function returns radians, convert immediately.
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     const anglePrev = Math.atan2(dyPrev, dxPrev) * 180 / Math.PI;
     const angleNext = Math.atan2(dyNext, dxNext) * 180 / Math.PI;
 
-    // Create the slanted segment
     let segment = createSlantedSegment(edgeLen, edgeWidth, h0, h1);
 
-    // Create cutting planes for joints
     if (i < maxIdx - 1) {
       const nextCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
         .translate([0, -2 * edgeWidth, -1])
@@ -92,14 +90,11 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
       segment = segment.subtract(prevCutter);
     }
 
-    // Transform segment to world position
     segment = segment.rotate([0, 0, angle]).translate([p0.x, p0.y, 0]);
     parts.push(segment);
 
-    // Create joint cylinder
     let joint = Manifold.cylinder(h0, edgeWidth/2, edgeWidth/2, 12);
 
-    // Cut joint with segment planes
     const segmentCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
       .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
       .rotate([0, 0, angle]);
@@ -112,11 +107,9 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
       joint = joint.subtract(prevSegmentCutter);
     }
 
-    // Transform joint to world position
     joint = joint.translate([p0.x, p0.y, 0]);
     parts.push(joint);
 
-    // Add final cylinder at the end of the last segment
     if (i === maxIdx - 2) {
       let finalJoint = Manifold.cylinder(h1, edgeWidth/2, edgeWidth/2, 12);
       const finalCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
@@ -131,32 +124,36 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
   return parts.length > 0 ? Manifold.union(parts) : new Manifold();
 }
 
-function createTextPlate(params: GpxMiniatureParams): Manifold {
+async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
   const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
 
-  // Create angled text surface by intersecting
+  // Create angled text surface
   const textSurface = Manifold.intersection(
     Manifold.cube([params.width, params.plateDepth, params.thickness]),
     Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
       .translate([0, 0, -params.thickness])
       .rotate([angle, 0, 0])
-  )
+  );
 
-  // Create text (Note: Manifold doesn't support text directly, we'd need to use a font rendering library)
-  // For now, we'll just create a placeholder rectangle
-  // const textPlaceholder = Manifold.cube([params.width * 0.8, params.fontSize, params.textThickness])
-  //   .translate([params.width * 0.1, params.plateDepth * 0.3, params.thickness]);
+  // Create 3D text
+  const text = await create3DText(params.title, {
+    fontSize: params.fontSize,
+    thickness: params.textThickness
+  });
 
-  return Manifold.union([textSurface]);
+  // Position the text on the angled surface
+  const textTransformed = text
+    .rotate([angle, 0, 0])
+    .translate([params.width / 2, params.plateDepth * 0.6, params.thickness - 0.01]);
+
+  return Manifold.union([textSurface, textTransformed]);
 }
 
-export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
+export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
   const maxSize = params.width - 2 * params.margin;
   
-  // Convert lat/lng to points
   const points = params.latLngValues.map(([lat, lng]) => ({ x: lng, y: lat }));
   
-  // Calculate bounds
   const pointsX = points.map(p => p.x);
   const pointsY = points.map(p => p.y);
   const pointsXMin = Math.min(...pointsX);
@@ -169,20 +166,16 @@ export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
   const mapHeight = pointsWidth > pointsHeight ? (pointsHeight / pointsWidth) * maxSize : maxSize;
   const scale = mapWidth / pointsWidth;
   
-  // Scale points
   const scaledPoints = points.map(p => ({
     x: (p.x - pointsXMin) * scale,
     y: (p.y - pointsYMin) * scale
   }));
   
-  // Create base plate
   const base = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
   
-  // Create text plate
-  const textPlate = createTextPlate(params);
+  const textPlate = await createTextPlate(params);
   
-  // Create map polyline
   const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
     .translate([-mapWidth/2, -mapHeight/2, 0])
     .rotate([0, 0, params.mapRotation])
@@ -190,7 +183,7 @@ export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
       params.margin + (params.width - 2 * params.margin) / 2,
       params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2,
       params.thickness - 0.001
-    ])
+    ]);
   
   return Manifold.union([base, textPlate, polyline]);
 }
