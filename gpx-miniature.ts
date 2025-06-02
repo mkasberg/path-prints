@@ -1,4 +1,5 @@
 import Module from 'manifold-3d';
+import { create3DText } from './text-3d';
 
 // Load Manifold WASM library
 const wasm = await Module();
@@ -31,7 +32,27 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
       .rotate([angle, 0, 0])
   ]);
 
-  return textSurface;
+  // Create 3D text
+  const text = await create3DText(params.title, {
+    fontSize: params.fontSize,
+    thickness: params.textThickness
+  });
+
+  // Scale and position the text on the plate
+  const textBounds = text.boundingBox();
+  const textWidth = textBounds.max[0] - textBounds.min[0];
+  const scale = Math.min(1, (params.width * 0.8) / textWidth);
+  
+  const transformedText = text
+    .scale([scale, scale, 1])
+    .rotate([angle, 0, 0])
+    .translate([
+      params.width / 2,
+      params.plateDepth / 2,
+      params.thickness - 0.01
+    ]);
+
+  return Manifold.union([textSurface, transformedText]);
 }
 
 export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
