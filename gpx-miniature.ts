@@ -27,11 +27,17 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
       .rotate([angle, 0, 0])
   ]);
 
+  console.log('textSurface isEmpty:', textSurface.isEmpty());
+  console.log('textSurface boundingBox:', textSurface.boundingBox());
+
   // Create 3D text
   const text = await create3DText(params.title, {
     fontSize: params.fontSize,
     thickness: params.textThickness
   });
+
+  console.log('text isEmpty:', text.isEmpty());
+  console.log('text boundingBox:', text.boundingBox());
 
   // Scale and position the text on the plate
   const textBounds = text.boundingBox();
@@ -47,7 +53,13 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
       params.thickness - 0.01
     ]);
 
-  return Manifold.union([textSurface, transformedText]);
+  console.log('transformedText isEmpty:', transformedText.isEmpty());
+  console.log('transformedText boundingBox:', transformedText.boundingBox());
+
+  const result = Manifold.union([textSurface, transformedText]);
+  console.log('final textPlate isEmpty:', result.isEmpty());
+  console.log('final textPlate boundingBox:', result.boundingBox());
+  return result;
 }
 
 export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
@@ -78,11 +90,20 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
   // Create base plate
   const base = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
+
+  console.log('base isEmpty:', base.isEmpty());
+  console.log('base boundingBox:', base.boundingBox());
   
   // Create text plate
   const textPlate = await createTextPlate(params);
-  
-  return Manifold.union([base, textPlate]);
+
+  console.log('textPlate isEmpty:', textPlate.isEmpty());
+  console.log('textPlate boundingBox:', textPlate.boundingBox());
+
+  const result = Manifold.union([base, textPlate]);
+  console.log('final miniature isEmpty:', result.isEmpty());
+  console.log('final miniature boundingBox:', result.boundingBox());
+  return result;
 }
 
 export const defaultParams: GpxMiniatureParams = {

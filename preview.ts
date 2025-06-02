@@ -79,7 +79,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   let miniatureMesh: ThreeMesh | null = null;
 
-  // Function to center and fit the object in view
+  // Function to center and fit the object
   function centerAndFitObject() {
     if (!miniatureMesh) return;
 
@@ -114,6 +114,13 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
       // Convert to Three.js geometry
       const mesh = miniature.getMesh();
+      console.log('Mesh data:', {
+        numVertices: mesh.numVert,
+        numTriangles: mesh.numTri,
+        vertPropertiesLength: mesh.vertProperties.length,
+        triVertsLength: mesh.triVerts.length
+      });
+
       const geometry = new BufferGeometry();
       geometry.setAttribute('position', new BufferAttribute(mesh.vertProperties, 3));
       geometry.setIndex(new BufferAttribute(mesh.triVerts, 1));
