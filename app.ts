@@ -21,7 +21,9 @@ interface GpxMiniatureParams {
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
 const updateMiniature = setupPreview(canvas);
 // Render initial preview with default params
-updateMiniature(defaultParams);
+(async () => {
+  await updateMiniature(defaultParams);
+})();
 
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
@@ -58,7 +60,7 @@ function displayValues(params: GpxMiniatureParams) {
   document.documentElement.style.setProperty('--color', params.color);
 }
 
-function handleInput(e: Event) {
+async function handleInput(e: Event) {
   // If someone types into a valueDisplay, update the input
   if(e.target.classList.contains('value-display')) {
     const input = e.target.previousElementSibling as HTMLInputElement;
@@ -70,7 +72,7 @@ function handleInput(e: Event) {
     ...parseFormData(data)
   };
   displayValues(params);
-  updateMiniature(params);
+  await updateMiniature(params);
 }
 
 function updateUrl() {

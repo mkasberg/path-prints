@@ -103,7 +103,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   }
 
   // Function to update the miniature
-  function updateMiniature(params: GpxMiniatureParams) {
+  async function updateMiniature(params: GpxMiniatureParams) {
     // Remove old mesh if it exists
     if (miniatureMesh) {
       scene.remove(miniatureMesh);
@@ -111,7 +111,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     }
 
     // Create new miniature
-    const miniature = createGpxMiniature(params);
+    const miniature = await createGpxMiniature(params);
 
     // Convert to Three.js geometry
     const mesh = miniature.getMesh();

@@ -1,6 +1,6 @@
 import Module from 'manifold-3d';
 import opentype from 'opentype.js';
-import robotoFontUrl from '@fontsource/roboto/files/roboto-latin-900-normal.woff2?url';
+import robotoFontUrl from '@fontsource/roboto/files/roboto-latin-900-normal.woff?url';
 
 // Load Manifold WASM library
 const wasm = await Module();
