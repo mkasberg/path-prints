@@ -20,7 +20,7 @@ interface GpxMiniatureParams {
   maxPolylineHeight: number;
 }
 
-function createTextPlate(params: GpxMiniatureParams): Manifold {
+async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
   const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
 
   // Create angled text surface by intersecting
@@ -34,7 +34,7 @@ function createTextPlate(params: GpxMiniatureParams): Manifold {
   return textSurface;
 }
 
-export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
+export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
   const maxSize = params.width - 2 * params.margin;
   
   // Convert lat/lng to points
@@ -64,7 +64,7 @@ export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
     .translate([0, params.plateDepth, 0]);
   
   // Create text plate
-  const textPlate = createTextPlate(params);
+  const textPlate = await createTextPlate(params);
   
   return Manifold.union([base, textPlate]);
 }
