@@ -1,10 +1,5 @@
-import Module from 'manifold-3d';
+import { Manifold, CrossSection } from './manifold-instance';
 import { create3DText } from './text-3d';
-
-// Load Manifold WASM library
-const wasm = await Module();
-wasm.setup();
-const { Manifold, CrossSection } = wasm;
 
 interface GpxMiniatureParams {
   title: string;

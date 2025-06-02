@@ -1,9 +1,4 @@
-import Module from 'manifold-3d';
-
-// Load Manifold WASM library
-const wasm = await Module();
-wasm.setup();
-const { Manifold } = wasm;
+import { Manifold } from './manifold-instance';
 
 interface TextOptions {
   fontSize?: number;
