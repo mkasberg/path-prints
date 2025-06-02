@@ -92,9 +92,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     const fov = camera.fov * (Math.PI / 180);
     let cameraZ = Math.abs(maxDim / Math.tan(fov / 2)) * 0.9;
 
-    // Set camera position with a better angle.
     camera.position.set(camera.position.x, camera.position.y, camera.position.z);
-
     camera.lookAt(center);
 
     // Reset controls target
@@ -104,37 +102,41 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Function to update the miniature
   async function updateMiniature(params: GpxMiniatureParams) {
-    // Remove old mesh if it exists
-    if (miniatureMesh) {
-      scene.remove(miniatureMesh);
-      miniatureMesh.geometry.dispose();
+    try {
+      // Remove old mesh if it exists
+      if (miniatureMesh) {
+        scene.remove(miniatureMesh);
+        miniatureMesh.geometry.dispose();
+      }
+
+      // Create new miniature
+      const miniature = await createGpxMiniature(params);
+
+      // Convert to Three.js geometry
+      const mesh = miniature.getMesh();
+      const geometry = new BufferGeometry();
+      geometry.setAttribute('position', new BufferAttribute(mesh.vertProperties, 3));
+      geometry.setIndex(new BufferAttribute(mesh.triVerts, 1));
+      geometry.computeVertexNormals();
+
+      // Create new mesh with shadows
+      miniatureMesh = new ThreeMesh(geometry, material);
+      miniatureMesh.castShadow = true;
+      miniatureMesh.receiveShadow = true;
+      
+      // Rotate the mesh to align with Three.js coordinate system
+      miniatureMesh.rotation.x = -Math.PI / 2;
+      
+      // Translate the mesh to the positive Z quadrant
+      miniatureMesh.position.z = params.width + params.plateDepth;
+      
+      scene.add(miniatureMesh);
+
+      // Center and fit the object
+      centerAndFitObject();
+    } catch (error) {
+      console.error('Error updating miniature:', error);
     }
-
-    // Create new miniature
-    const miniature = await createGpxMiniature(params);
-
-    // Convert to Three.js geometry
-    const mesh = miniature.getMesh();
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', new BufferAttribute(mesh.vertProperties, 3));
-    geometry.setIndex(new BufferAttribute(mesh.triVerts, 1));
-    geometry.computeVertexNormals();
-
-    // Create new mesh with shadows
-    miniatureMesh = new ThreeMesh(geometry, material);
-    miniatureMesh.castShadow = true;
-    miniatureMesh.receiveShadow = true;
-    
-    // Rotate the mesh to align with Three.js coordinate system
-    miniatureMesh.rotation.x = -Math.PI / 2;
-    
-    // Translate the mesh to the positive Z quadrant
-    miniatureMesh.position.z = params.width + params.plateDepth;
-    
-    scene.add(miniatureMesh);
-
-    // Center and fit the object
-    centerAndFitObject();
   }
 
   // Add orbit controls with better settings
@@ -143,17 +145,15 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   controls.dampingFactor = 0.05;
   controls.minDistance = 10;
   controls.maxDistance = 500;
-  controls.maxPolarAngle = Math.PI / 2; // Prevent going below the ground
-  controls.screenSpacePanning = true; // Better panning behavior
-  controls.rotateSpeed = 0.5; // Slower rotation for more control
+  controls.maxPolarAngle = Math.PI / 2;
+  controls.screenSpacePanning = true;
+  controls.rotateSpeed = 0.5;
 
   // Handle window resize
   window.addEventListener('resize', () => {
-    // hide the canvas for a second so the CSS grid can resize it
     canvas.removeAttribute('style');
     canvas.width = 0;
     canvas.height = 0;
-    // then  the CSS will size it
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
