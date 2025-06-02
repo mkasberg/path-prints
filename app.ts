@@ -21,17 +21,13 @@ interface GpxMiniatureParams {
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
 const updateMiniature = setupPreview(canvas);
 // Render initial preview with default params
-(async () => {
-  await updateMiniature(defaultParams);
-})();
+updateMiniature(defaultParams);
 
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
 // Get all range inputs
 const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => !input.classList.contains('value-display'));
-// todo - I have a tip somewhere on an easy way to split this into two arrays
 const displayInputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => input.classList.contains('value-display'));
-
 
 function parseFormData(data: FormData) {
   const params: Record<string, any> = {};
@@ -47,7 +43,6 @@ function parseFormData(data: FormData) {
   return params as GpxMiniatureParams;
 }
 
-
 function displayValues(params: GpxMiniatureParams) {
   for(const input of inputs) {
     const label = input.nextElementSibling as HTMLInputElement;
@@ -60,7 +55,7 @@ function displayValues(params: GpxMiniatureParams) {
   document.documentElement.style.setProperty('--color', params.color);
 }
 
-async function handleInput(e: Event) {
+function handleInput(e: Event) {
   // If someone types into a valueDisplay, update the input
   if(e.target.classList.contains('value-display')) {
     const input = e.target.previousElementSibling as HTMLInputElement;
@@ -72,7 +67,7 @@ async function handleInput(e: Event) {
     ...parseFormData(data)
   };
   displayValues(params);
-  await updateMiniature(params);
+  updateMiniature(params);
 }
 
 function updateUrl() {
@@ -80,7 +75,6 @@ function updateUrl() {
   const url = new URLSearchParams(data);
   history.pushState({}, '', `?${url.toString()}`);
 }
-
 
 // Temporarily disable form handling
 // controls.addEventListener("input", handleInput);
@@ -105,13 +99,11 @@ function restoreState() {
   controls.dispatchEvent(event);
 }
 
-
 // Temporarily disable URL state restoration
 // restoreState();
 
-
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
-exportButton.addEventListener("click", async  () => {
+exportButton.addEventListener("click", async () => {
   const params = {
     ...defaultParams,
     ...parseFormData(new FormData(controls))
