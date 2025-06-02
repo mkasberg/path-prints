@@ -16,52 +16,6 @@ interface GpxMiniatureParams {
   maxPolylineHeight: number;
 }
 
-async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
-  const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
-
-  // Create angled text surface by intersecting
-  const textSurface = Manifold.intersection([
-    Manifold.cube([params.width, params.plateDepth, params.thickness]),
-    Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
-      .translate([0, 0, -params.thickness])
-      .rotate([angle, 0, 0])
-  ]);
-
-  console.log('textSurface isEmpty:', textSurface.isEmpty());
-  console.log('textSurface boundingBox:', textSurface.boundingBox());
-
-  // Create 3D text
-  const text = await create3DText(params.title, {
-    fontSize: params.fontSize,
-    thickness: params.textThickness
-  });
-
-  console.log('text isEmpty:', text.isEmpty());
-  console.log('text boundingBox:', text.boundingBox());
-
-  // Scale and position the text on the plate
-  const textBounds = text.boundingBox();
-  const textWidth = textBounds.max[0] - textBounds.min[0];
-  const scale = Math.min(1, (params.width * 0.8) / textWidth);
-  
-  const transformedText = text
-    .scale([scale, scale, 1])
-    .rotate([angle, 0, 0])
-    .translate([
-      params.width / 2,
-      params.plateDepth / 2,
-      params.thickness - 0.01
-    ]);
-
-  console.log('transformedText isEmpty:', transformedText.isEmpty());
-  console.log('transformedText boundingBox:', transformedText.boundingBox());
-
-  const result = Manifold.union([textSurface, transformedText]);
-  console.log('final textPlate isEmpty:', result.isEmpty());
-  console.log('final textPlate boundingBox:', result.boundingBox());
-  return result;
-}
-
 export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
   const maxSize = params.width - 2 * params.margin;
   
@@ -91,23 +45,32 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
   const base = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
 
-  console.log('base isEmpty:', base.isEmpty());
-  console.log('base boundingBox:', base.boundingBox());
+  console.log('Base plate created:', {
+    isEmpty: base.isEmpty(),
+    boundingBox: base.boundingBox()
+  });
   
-  // Create text plate
-  const textPlate = await createTextPlate(params);
+  // Create text
+  const text = await create3DText(params.title, {
+    fontSize: params.fontSize,
+    thickness: params.textThickness
+  });
 
-  console.log('textPlate isEmpty:', textPlate.isEmpty());
-  console.log('textPlate boundingBox:', textPlate.boundingBox());
+  console.log('Text manifold created:', {
+    isEmpty: text.isEmpty(),
+    boundingBox: text.boundingBox()
+  });
 
-  const result = Manifold.union([base, textPlate]);
-  console.log('final miniature isEmpty:', result.isEmpty());
-  console.log('final miniature boundingBox:', result.boundingBox());
+  const result = Manifold.union([base, text]);
+  console.log('Final miniature:', {
+    isEmpty: result.isEmpty(),
+    boundingBox: result.boundingBox()
+  });
   return result;
 }
 
 export const defaultParams: GpxMiniatureParams = {
-  title: "Century *100*",
+  title: "S",  // Changed to single letter for debugging
   fontSize: 3.5,
   outBack: 100,
   mapRotation: 0,

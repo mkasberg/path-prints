@@ -40,6 +40,8 @@ function interpolateCubic(p0: Point, p1: Point, p2: Point, p3: Point, t: number)
 }
 
 function extractContours(commands: opentype.PathCommand[]): Array<Array<[number, number]>> {
+  console.log('Raw path commands:', commands);
+  
   const contours: Array<Array<[number, number]>> = [];
   let currentContour: Array<[number, number]> = [];
   let currentX = 0;
@@ -47,6 +49,8 @@ function extractContours(commands: opentype.PathCommand[]): Array<Array<[number,
   const STEPS = 10;
 
   for (const cmd of commands) {
+    console.log('Processing command:', cmd.type, cmd);
+    
     switch (cmd.type) {
       case 'M':
         if (currentContour.length > 0) {
@@ -97,7 +101,6 @@ function extractContours(commands: opentype.PathCommand[]): Array<Array<[number,
 
       case 'Z':
         if (currentContour.length > 0) {
-          // Close the contour by adding the first point
           currentContour.push(currentContour[0]);
           contours.push([...currentContour]);
           currentContour = [];
@@ -106,11 +109,11 @@ function extractContours(commands: opentype.PathCommand[]): Array<Array<[number,
     }
   }
 
-  // Add any remaining contour
   if (currentContour.length > 0) {
     contours.push(currentContour);
   }
 
+  console.log('Extracted contours:', contours);
   return contours;
 }
 
@@ -123,10 +126,12 @@ export async function create3DText(
     thickness = 10
   } = options;
 
+  console.log('Creating 3D text:', { text, fontSize, thickness });
+  
   const font = await loadFont();
   const path = font.getPath(text, 0, 0, fontSize);
+  console.log('Font path generated:', path);
   
-  // Extract all contours from the path
   const contours = extractContours(path.commands);
   
   if (contours.length === 0) {
@@ -134,19 +139,24 @@ export async function create3DText(
     return Manifold.cube([1, 1, thickness]);
   }
 
-  // Create manifolds for each contour
   const manifolds: Manifold[] = [];
   
-  for (const contour of contours) {
+  for (let i = 0; i < contours.length; i++) {
+    const contour = contours[i];
     if (contour.length >= 3) {
       try {
+        console.log(`Processing contour ${i}:`, contour);
         const crossSection = new CrossSection(contour);
         const extruded = crossSection.extrude(thickness);
+        console.log(`Contour ${i} extrusion:`, {
+          isEmpty: extruded.isEmpty(),
+          boundingBox: extruded.boundingBox()
+        });
         if (!extruded.isEmpty()) {
           manifolds.push(extruded);
         }
       } catch (error) {
-        console.warn('Failed to create contour:', error);
+        console.warn(`Failed to create contour ${i}:`, error);
       }
     }
   }
@@ -156,6 +166,11 @@ export async function create3DText(
     return Manifold.cube([1, 1, thickness]);
   }
 
-  // Combine all manifolds
-  return Manifold.union(manifolds);
+  const result = Manifold.union(manifolds);
+  console.log('Final text manifold:', {
+    isEmpty: result.isEmpty(),
+    boundingBox: result.boundingBox()
+  });
+  
+  return result;
 }
