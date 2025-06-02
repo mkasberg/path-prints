@@ -165,7 +165,8 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
   const base = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
   
-  const textPlate = await createTextPlate(params);
+  // Create text plate but don't include it in the final union
+  await createTextPlate(params);
   
   const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
     .translate([-mapWidth/2, -mapHeight/2, 0])
@@ -176,7 +177,8 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
       params.thickness - 0.001
     ]);
   
-  return Manifold.union([base, textPlate, polyline]);
+  // Return only the base and polyline union
+  return Manifold.union([base, polyline]);
 }
 
 export const defaultParams: GpxMiniatureParams = {
