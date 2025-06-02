@@ -146,12 +146,18 @@ export async function create3DText(
     if (contour.length >= 3) {
       try {
         console.log(`Processing contour ${i}:`, contour);
-        const crossSection = new CrossSection(contour);
+        
+        // Reverse the contour points to change winding order
+        const reversedContour = [...contour].reverse();
+        console.log(`Reversed contour ${i}:`, reversedContour);
+        
+        const crossSection = new CrossSection(reversedContour);
         const extruded = crossSection.extrude(thickness);
         console.log(`Contour ${i} extrusion:`, {
           isEmpty: extruded.isEmpty(),
           boundingBox: extruded.boundingBox()
         });
+        
         if (!extruded.isEmpty()) {
           manifolds.push(extruded);
         }
