@@ -1,6 +1,6 @@
 import { strToU8, Zippable, zipSync } from 'fflate';
 import { fileForContentTypes, FileForRelThumbnail, to3dmodel } from '@jscadui/3mf-export';
-import type { Manifold, Mesh } from 'manifold-3d';
+import { Manifold, Mesh } from './built/manifold';
 
 interface Mesh3MF {
   id: string;

@@ -40,8 +40,6 @@ function interpolateCubic(p0: Point, p1: Point, p2: Point, p3: Point, t: number)
 }
 
 function extractContours(commands: opentype.PathCommand[]): Array<Array<[number, number]>> {
-  console.log('Raw path commands:', commands);
-  
   const contours: Array<Array<[number, number]>> = [];
   let currentContour: Array<[number, number]> = [];
   let currentX = 0;
@@ -49,8 +47,6 @@ function extractContours(commands: opentype.PathCommand[]): Array<Array<[number,
   const STEPS = 10;
 
   for (const cmd of commands) {
-    console.log('Processing command:', cmd.type, cmd);
-    
     switch (cmd.type) {
       case 'M':
         if (currentContour.length > 0) {
@@ -113,7 +109,6 @@ function extractContours(commands: opentype.PathCommand[]): Array<Array<[number,
     contours.push(currentContour);
   }
 
-  console.log('Extracted contours:', contours);
   return contours;
 }
 
@@ -125,18 +120,15 @@ export async function create3DText(
     fontSize = 72,
     thickness = 10
   } = options;
-
-  console.log('Creating 3D text:', { text, fontSize, thickness });
   
   const font = await loadFont();
   const path = font.getPath(text, 0, 0, fontSize);
-  console.log('Font path generated:', path);
   
   const contours = extractContours(path.commands);
   
   if (contours.length === 0) {
     console.warn('No valid contours found in text');
-    return Manifold.cube([1, 1, thickness]);
+    return null;
   }
 
   const manifolds: Manifold[] = [];
@@ -144,39 +136,22 @@ export async function create3DText(
   for (let i = 0; i < contours.length; i++) {
     const contour = contours[i];
     if (contour.length >= 3) {
-      try {
-        console.log(`Processing contour ${i}:`, contour);
-        
-        // Reverse the contour points to change winding order
-        const reversedContour = [...contour].reverse();
-        console.log(`Reversed contour ${i}:`, reversedContour);
-        
-        const crossSection = new CrossSection(reversedContour);
-        const extruded = crossSection.extrude(thickness);
-        console.log(`Contour ${i} extrusion:`, {
-          isEmpty: extruded.isEmpty(),
-          boundingBox: extruded.boundingBox()
-        });
-        
-        if (!extruded.isEmpty()) {
-          manifolds.push(extruded);
-        }
-      } catch (error) {
-        console.warn(`Failed to create contour ${i}:`, error);
+      // Reverse the contour points to change winding order
+      const reversedContour = [...contour].reverse();
+      
+      const crossSection = new CrossSection(reversedContour);
+      const extruded = crossSection.extrude(thickness);
+      
+      if (!extruded.isEmpty()) {
+        manifolds.push(extruded);
       }
     }
   }
 
   if (manifolds.length === 0) {
     console.warn('No valid manifolds created');
-    return Manifold.cube([1, 1, thickness]);
+    return null;
   }
 
-  const result = Manifold.union(manifolds);
-  console.log('Final text manifold:', {
-    isEmpty: result.isEmpty(),
-    boundingBox: result.boundingBox()
-  });
-  
-  return result;
+  return Manifold.union(manifolds);
 }

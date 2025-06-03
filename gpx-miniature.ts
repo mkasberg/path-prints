@@ -16,6 +16,140 @@ interface GpxMiniatureParams {
   maxPolylineHeight: number;
 }
 
+function halfAngleDifference(a2: number, a1: number): number {
+  if (Math.abs(a2 - a1) < 180) return (a2 - a1) / 2;
+  if (Math.abs(a2 - a1 - 360) < 180) return (a2 - a1 - 360) / 2;
+  return (a2 - a1 + 360) / 2;
+}
+
+function createSlantedSegment(edgeLen: number, edgeWidth: number, h0: number, h1: number): Manifold {
+  // Create a cross section of the trapezoidal shape
+  const crossSection = new CrossSection([
+    [0, 0],       // bottom left
+    [edgeLen, 0], // bottom right
+    [edgeLen, h1], // top right
+    [0, h0]       // top left
+  ]);
+
+  // Extrude up Z, rotate to the proper orientation (+Z resting on thy XY plane),
+  // and then translate to center on X axis.
+  return crossSection.extrude(edgeWidth).rotate([90, 0, 0]).translate([0, edgeWidth/2, 0]);
+}
+
+function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number, y: number }[], elevation: number[]): Manifold {
+  const maxIdx = Math.round((params.outBack / 100) * scaledPoints.length - 1);
+  const elevationMin = Math.min(...elevation);
+  const elevationDiff = Math.max(...elevation) - elevationMin;
+  const mapPolylineHeight = Math.min(params.maxPolylineHeight, elevationDiff / 10);
+
+  const scaledElevation = elevation.map(e => 
+    (e - elevationMin) * 0.95 * mapPolylineHeight / elevationDiff + 0.05 * mapPolylineHeight
+  );
+
+  const parts: Manifold[] = [];
+  
+  for (let i = 0; i < maxIdx - 1; i++) {
+    const p0 = scaledPoints[i];
+    const p1 = scaledPoints[i + 1];
+    const h0 = scaledElevation[i];
+    const h1 = scaledElevation[i + 1];
+    const dx = p1.x - p0.x;
+    const dy = p1.y - p0.y;
+
+    const dxPrev = i > 0 ? p0.x - scaledPoints[i - 1].x : 0;
+    const dyPrev = i > 0 ? p0.y - scaledPoints[i - 1].y : 0;
+    const dxNext = i < maxIdx - 1 ? scaledPoints[i + 2].x - p1.x : 0;
+    const dyNext = i < maxIdx - 1 ? scaledPoints[i + 2].y - p1.y : 0;
+
+    const edgeWidth = 1;
+    const edgeLen = Math.sqrt(dx * dx + dy * dy) + 0.01;
+    
+    // All angles are in degrees! If a function returns radians, convert immediately.
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const anglePrev = Math.atan2(dyPrev, dxPrev) * 180 / Math.PI;
+    const angleNext = Math.atan2(dyNext, dxNext) * 180 / Math.PI;
+
+    // Create the slanted segment
+    let segment = createSlantedSegment(edgeLen, edgeWidth, h0, h1);
+
+    // Create cutting planes for joints
+    if (i < maxIdx - 1) {
+      const nextCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
+        .translate([0, -2 * edgeWidth, -1])
+        .rotate([0, 0, halfAngleDifference(angleNext, angle)])
+        .translate([edgeLen, 0, 0]);
+      segment = segment.subtract(nextCutter);
+    }
+
+    if (i > 0) {
+      const prevCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
+        .translate([0, -2 * edgeWidth, -1])
+        .rotate([0, 0, 180 - halfAngleDifference(angle, anglePrev)]);
+      segment = segment.subtract(prevCutter);
+    }
+
+    // Transform segment to world position
+    segment = segment.rotate([0, 0, angle]).translate([p0.x, p0.y, 0]);
+    parts.push(segment);
+
+    // Create joint cylinder
+    let joint = Manifold.cylinder(h0, edgeWidth/2, edgeWidth/2, 12);
+
+    // Cut joint with segment planes
+    const segmentCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
+      .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
+      .rotate([0, 0, angle]);
+    joint = joint.subtract(segmentCutter);
+
+    if (i > 0) {
+      const prevSegmentCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
+        .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
+        .rotate([0, 0, 180 + anglePrev]);
+      joint = joint.subtract(prevSegmentCutter);
+    }
+
+    // Transform joint to world position
+    joint = joint.translate([p0.x, p0.y, 0]);
+    parts.push(joint);
+
+    // Add final cylinder at the end of the last segment
+    if (i === maxIdx - 2) {
+      let finalJoint = Manifold.cylinder(h1, edgeWidth/2, edgeWidth/2, 12);
+      const finalCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
+        .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
+        .rotate([0, 0, 180 + angle]);
+      finalJoint = finalJoint.subtract(finalCutter);
+      finalJoint = finalJoint.translate([p1.x, p1.y, 0]);
+      parts.push(finalJoint);
+    }
+  }
+
+  return parts.length > 0 ? Manifold.union(parts) : new Manifold();
+}
+
+async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
+  const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
+
+  // Create angled text surface by intersecting
+  const textSurface = Manifold.intersection(
+    Manifold.cube([params.width, params.plateDepth, params.thickness]),
+    Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
+      .translate([0, 0, -params.thickness])
+      .rotate([angle, 0, 0])
+  )
+
+  // Create text
+  const text = (await create3DText(params.title, {
+    fontSize: params.fontSize,
+    thickness: params.textThickness
+  }))
+    // TODO Center Text
+    .translate([params.width * 0.1, params.plateDepth * 0.2, 0])
+    .rotate([angle, 0, 0]);
+
+  return Manifold.union([textSurface, text]);
+}
+
 export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
   const maxSize = params.width - 2 * params.margin;
   
@@ -42,40 +176,28 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
   }));
   
   // Create base plate
-  const base = Manifold.cube(
-    [params.width + params.bracketThickness * 2,
-    params.height + params.bracketThickness * 2,
-    params.depth]
-  )
+  const base = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
-
-  console.log('Base plate created:', {
-    isEmpty: base.isEmpty(),
-    boundingBox: base.boundingBox()
-  });
   
-  // Create text
-  const text = await create3DText(params.title, {
-    fontSize: params.fontSize,
-    thickness: params.textThickness
-  });
+  // Create text plate
+  const textPlate = await createTextPlate(params);
 
-  console.log('Text manifold created:', {
-    isEmpty: text.isEmpty(),
-    boundingBox: text.boundingBox()
-  });
+  // Create map polyline
+  const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
+    .translate([-mapWidth/2, -mapHeight/2, 0])
+    .rotate([0, 0, params.mapRotation])
+    .translate([
+      params.margin + (params.width - 2 * params.margin) / 2,
+      params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2,
+      params.thickness - 0.001
+    ])
 
-  const result = Manifold.union([base, text]);
-  console.log('Final miniature:', {
-    isEmpty: result.isEmpty(),
-    boundingBox: result.boundingBox()
-  });
-  return result;
+  return Manifold.union([base, textPlate, polyline]);
 }
 
 export const defaultParams: GpxMiniatureParams = {
   title: "Century *100*",
-  fontSize: 100,  // Keep the larger font size for better visibility
+  fontSize: 3.5,
   outBack: 100,
   mapRotation: 0,
   elevationValues: [1720.8,1710.8,1697.8,1688.6,1701.6,1706.2,1695,1708.4,1663.8,1643.2,1635.4,1630.4,1621.6,1615,1606.6,1612.8,1626,1637.8,1673.8,1677.8,1677.8,1676.6,1676,1676.2,1675.8,1676.8,1677.4,1675.6,1674.4,1672.8,1674.8,1677.2,1669.4,1676,1675.2,1674.4,1666.8,1664,1651.8,1645.8,1636.8,1626.6,1623,1611,1601.6,1594.2,1598.4,1605,1626.6,1654,1666.6,1694.4,1703.8,1724.2,1731.6,1733.2,1720.2,1707.2,1688.6,1668.6,1644,1629.2,1613.4,1608.2,1603.6,1600.6,1601.2,1599,1593.2,1593.4,1588,1598.4,1608.2,1613,1617.4,1623.2,1631.6,1634.8,1644.2,1655.6,1662.8,1666.6,1679.2,1689.8,1707.4,1722.6,1753,1765,1762.8,1811.6,1824,1850.4,1894,1879,1848.8,1869,1870,1852.8,1785.6,1741.2],
