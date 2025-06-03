@@ -15,6 +15,7 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
+  color: string;
 }
 
 // Initialize the preview
@@ -79,10 +80,9 @@ function updateUrl() {
   history.pushState({}, '', `?${url.toString()}`);
 }
 
-
-// Temporarily disable form handling
-// controls.addEventListener("input", handleInput);
-// controls.addEventListener("change", updateUrl);
+// Enable form handling
+controls.addEventListener("input", handleInput);
+controls.addEventListener("change", updateUrl);
 
 // On page load, check if there is a url param and parse it
 function restoreState() {
@@ -103,10 +103,8 @@ function restoreState() {
   controls.dispatchEvent(event);
 }
 
-
-// Temporarily disable URL state restoration
-// restoreState();
-
+// Enable URL state restoration
+restoreState();
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {

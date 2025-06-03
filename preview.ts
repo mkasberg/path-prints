@@ -16,6 +16,7 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
+  color: string;
 }
 
 export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: GpxMiniatureParams) => void) {
@@ -71,7 +72,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Create material with edge emphasis
   const material = new MeshStandardMaterial({
-    color: 0xff0090,
+    color: defaultParams.color,
     roughness: 0.2,
     metalness: 0.0,
     flatShading: true
@@ -108,6 +109,9 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
       scene.remove(miniatureMesh);
       miniatureMesh.geometry.dispose();
     }
+
+    // Update material color
+    material.color.set(params.color);
 
     // Create new miniature
     const miniature = await createGpxMiniature(params);

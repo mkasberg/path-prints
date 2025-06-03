@@ -14,6 +14,7 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
+  color: string;
 }
 
 function halfAngleDifference(a2: number, a1: number): number {
@@ -207,5 +208,6 @@ export const defaultParams: GpxMiniatureParams = {
   thickness: 5,
   textThickness: 2,
   margin: 2.5,
-  maxPolylineHeight: 20
+  maxPolylineHeight: 20,
+  color: "#ff0090"
 };
