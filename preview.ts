@@ -102,8 +102,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     controls.update();
   }
 
-  // Function to update the miniature
-  function updateMiniature(params: GpxMiniatureParams) {
+  async function updateMiniature(params: GpxMiniatureParams) {
     // Remove old mesh if it exists
     if (miniatureMesh) {
       scene.remove(miniatureMesh);
@@ -111,7 +110,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     }
 
     // Create new miniature
-    const miniature = createGpxMiniature(params);
+    const miniature = await createGpxMiniature(params);
 
     // Convert to Three.js geometry
     const mesh = miniature.getMesh();
@@ -127,13 +126,12 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     
     // Rotate the mesh to align with Three.js coordinate system
     miniatureMesh.rotation.x = -Math.PI / 2;
-    
+
     // Translate the mesh to the positive Z quadrant
     miniatureMesh.position.z = params.width + params.plateDepth;
     
     scene.add(miniatureMesh);
 
-    // Center and fit the object
     centerAndFitObject();
   }
 

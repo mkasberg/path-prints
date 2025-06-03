@@ -1,9 +1,5 @@
-import Module from 'manifold-3d';
-
-// Load Manifold WASM library
-const wasm = await Module();
-wasm.setup();
-const { Manifold, CrossSection } = wasm;
+import { Manifold, CrossSection } from './manifold-instance';
+import { create3DText } from './text-3d';
 
 interface GpxMiniatureParams {
   title: string;
@@ -131,7 +127,7 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
   return parts.length > 0 ? Manifold.union(parts) : new Manifold();
 }
 
-function createTextPlate(params: GpxMiniatureParams): Manifold {
+async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
   const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
 
   // Create angled text surface by intersecting
@@ -142,15 +138,19 @@ function createTextPlate(params: GpxMiniatureParams): Manifold {
       .rotate([angle, 0, 0])
   )
 
-  // Create text (Note: Manifold doesn't support text directly, we'd need to use a font rendering library)
-  // For now, we'll just create a placeholder rectangle
-  // const textPlaceholder = Manifold.cube([params.width * 0.8, params.fontSize, params.textThickness])
-  //   .translate([params.width * 0.1, params.plateDepth * 0.3, params.thickness]);
+  // Create text
+  const text = (await create3DText(params.title, {
+    fontSize: params.fontSize,
+    thickness: params.textThickness
+  }))
+    // TODO Center Text
+    .translate([params.width * 0.1, params.plateDepth * 0.2, 0])
+    .rotate([angle, 0, 0]);
 
-  return Manifold.union([textSurface]);
+  return Manifold.union([textSurface, text]);
 }
 
-export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
+export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
   const maxSize = params.width - 2 * params.margin;
   
   // Convert lat/lng to points
@@ -180,8 +180,8 @@ export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
     .translate([0, params.plateDepth, 0]);
   
   // Create text plate
-  const textPlate = createTextPlate(params);
-  
+  const textPlate = await createTextPlate(params);
+
   // Create map polyline
   const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
     .translate([-mapWidth/2, -mapHeight/2, 0])
@@ -191,7 +191,7 @@ export function createGpxMiniature(params: GpxMiniatureParams): Manifold {
       params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2,
       params.thickness - 0.001
     ])
-  
+
   return Manifold.union([base, textPlate, polyline]);
 }
 
