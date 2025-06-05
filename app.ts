@@ -1,22 +1,8 @@
 import { exportTo3MF } from './export';
 import { setupPreview } from "./preview";
-import { createGpxMiniature, defaultParams } from "./gpx-miniature";
+import { createGpxMiniature, defaultParams, GpxMiniatureParams } from "./gpx-miniature";
 
-interface GpxMiniatureParams {
-  title: string;
-  fontSize: number;
-  outBack: number;
-  mapRotation: number;
-  elevationValues: number[];
-  latLngValues: [number, number][];
-  width: number;
-  plateDepth: number;
-  thickness: number;
-  textThickness: number;
-  margin: number;
-  maxPolylineHeight: number;
-  color: string;
-}
+const MAX_GPX_POINTS = 200;
 
 // Initialize the preview
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
@@ -26,9 +12,7 @@ const controls = document.querySelector<HTMLFormElement>("#controls");
 
 // Get all range inputs
 const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => !input.classList.contains('value-display'));
-// todo - I have a tip somewhere on an easy way to split this into two arrays
 const displayInputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => input.classList.contains('value-display'));
-
 
 function parseFormData(data: FormData) {
   const params: Record<string, any> = {};
@@ -43,7 +27,6 @@ function parseFormData(data: FormData) {
   }
   return params as GpxMiniatureParams;
 }
-
 
 function displayValues(params: GpxMiniatureParams) {
   for(const input of inputs) {
@@ -103,6 +86,80 @@ function restoreState() {
 
 // Enable URL state restoration
 restoreState();
+
+// GPX file handling
+const gpxFileInput = document.getElementById('gpxFile') as HTMLInputElement;
+const importGpxButton = document.getElementById('importGpxButton') as HTMLButtonElement;
+
+importGpxButton.addEventListener('click', () => {
+  gpxFileInput.click();
+});
+
+gpxFileInput.addEventListener('change', async (e) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const text = await file.text();
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, 'text/xml');
+
+  // Create a namespace resolver for the GPX namespace
+  const nsResolver = xmlDoc.createNSResolver(xmlDoc.documentElement);
+
+  // Get all track points
+  const trackPoints = xmlDoc.evaluate(
+    '//xmlns:trkpt',
+    xmlDoc,
+    nsResolver,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+
+  const latLngValues: [number, number][] = [];
+  const elevationValues: number[] = [];
+
+  // Extract lat/lon and elevation data
+  for (let i = 0; i < trackPoints.snapshotLength; i++) {
+    const trkpt = trackPoints.snapshotItem(i) as Element;
+    const lat = parseFloat(trkpt.getAttribute('lat'));
+    const lon = parseFloat(trkpt.getAttribute('lon'));
+    const ele = parseFloat(trkpt.querySelector('ele')?.textContent || '0');
+
+    if (!isNaN(lat) && !isNaN(lon) && !isNaN(ele)) {
+      latLngValues.push([lat, lon]);
+      elevationValues.push(ele);
+    }
+  }
+
+  // Trim arrays if they exceed MAX_GPX_POINTS
+  if (latLngValues.length > MAX_GPX_POINTS) {
+    const step = Math.floor(latLngValues.length / MAX_GPX_POINTS);
+    const trimmedLatLng = latLngValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);
+    const trimmedElevation = elevationValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);
+
+    // Update the params with trimmed data
+    const data = new FormData(controls);
+    const params = {
+      ...defaultParams,
+      ...parseFormData(data),
+      latLngValues: trimmedLatLng,
+      elevationValues: trimmedElevation
+    };
+
+    updateMiniature(params);
+  } else {
+    // Update the params with the original data
+    const data = new FormData(controls);
+    const params = {
+      ...defaultParams,
+      ...parseFormData(data),
+      latLngValues,
+      elevationValues
+    };
+
+    updateMiniature(params);
+  }
+});
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {

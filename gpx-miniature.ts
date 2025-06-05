@@ -1,7 +1,7 @@
 import { Manifold, CrossSection } from './manifold-instance';
 import { create3DText } from './text-3d';
 
-interface GpxMiniatureParams {
+export interface GpxMiniatureParams {
   title: string;
   fontSize: number;
   outBack: number;
