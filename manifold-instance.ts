@@ -1,7 +1,15 @@
 import Module from 'manifold-3d';
 
-// Load Manifold WASM library and export the instance
-const wasm = await Module();
-wasm.setup();
+let manifoldInstance: { Manifold: any; CrossSection: any } | null = null;
 
-export const { Manifold, CrossSection } = wasm;
+export async function getManifoldInstance() {
+  if (!manifoldInstance) {
+    const wasm = await Module();
+    wasm.setup();
+    manifoldInstance = {
+      Manifold: wasm.Manifold,
+      CrossSection: wasm.CrossSection
+    };
+  }
+  return manifoldInstance;
+}
