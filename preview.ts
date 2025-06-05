@@ -22,6 +22,7 @@ interface GpxMiniatureParams {
 export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: GpxMiniatureParams) => void) {
   // Set up Three.js scene
   const scene = new Scene();
+  console.log('Scene initialized');
   scene.background = new THREE.Color(0x1a1a1a);
 
   // Create camera with a better initial position
@@ -104,8 +105,12 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   }
 
   async function updateMiniature(params: GpxMiniatureParams) {
+    console.log('updateMiniature called with params:', { ...params, elevationValues: '[...]', latLngValues: '[...]' });
+    console.log('Scene children before update:', scene.children.length);
+    
     // Remove old mesh if it exists
     if (miniatureMesh) {
+      console.log('Removing existing miniatureMesh');
       scene.remove(miniatureMesh);
       miniatureMesh.geometry.dispose();
     }
@@ -135,6 +140,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     miniatureMesh.position.z = params.width + params.plateDepth;
     
     scene.add(miniatureMesh);
+    console.log('New miniatureMesh added, scene children after update:', scene.children.length);
 
     centerAndFitObject();
   }
