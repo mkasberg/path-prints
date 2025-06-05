@@ -26,7 +26,9 @@ const controls = document.querySelector<HTMLFormElement>("#controls");
 
 // Get all range inputs
 const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => !input.classList.contains('value-display'));
+// todo - I have a tip somewhere on an easy way to split this into two arrays
 const displayInputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => input.classList.contains('value-display'));
+
 
 function parseFormData(data: FormData) {
   const params: Record<string, any> = {};
@@ -41,6 +43,7 @@ function parseFormData(data: FormData) {
   }
   return params as GpxMiniatureParams;
 }
+
 
 function displayValues(params: GpxMiniatureParams) {
   for(const input of inputs) {

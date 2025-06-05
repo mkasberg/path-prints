@@ -38,8 +38,6 @@ function createSlantedSegment(edgeLen: number, edgeWidth: number, h0: number, h1
 }
 
 function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number, y: number }[], elevation: number[]): Manifold {
-  console.log('Creating map polyline with rotation:', params.mapRotation);
-  
   const maxIdx = Math.round((params.outBack / 100) * scaledPoints.length - 1);
   const elevationMin = Math.min(...elevation);
   const elevationDiff = Math.max(...elevation) - elevationMin;
@@ -154,13 +152,6 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
 }
 
 export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
-  console.log('createGpxMiniature called with params:', { 
-    ...params, 
-    elevationValues: '[...]',
-    latLngValues: '[...]',
-    mapRotation: params.mapRotation 
-  });
-  
   const maxSize = params.width - 2 * params.margin;
   
   // Convert lat/lng to points
@@ -218,5 +209,5 @@ export const defaultParams: GpxMiniatureParams = {
   textThickness: 2,
   margin: 2.5,
   maxPolylineHeight: 20,
-  color: "#ff0090"
+  color: "#fc5200"
 };
