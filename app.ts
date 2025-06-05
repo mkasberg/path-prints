@@ -99,21 +99,21 @@ gpxFileInput.addEventListener('change', async (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
 
+  console.log('📂 Processing GPX file:', file.name);
   const text = await file.text();
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, 'text/xml');
 
-  // Create a namespace resolver for the GPX namespace
-  const nsResolver = xmlDoc.createNSResolver(xmlDoc.documentElement);
-
-  // Get all track points
+  // Get all track points using local-name()
   const trackPoints = xmlDoc.evaluate(
-    '//xmlns:trkpt',
+    '//*[local-name()="trkpt"]',
     xmlDoc,
-    nsResolver,
+    null,
     XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
     null
   );
+
+  console.log(`📍 Found ${trackPoints.snapshotLength} track points`);
 
   const latLngValues: [number, number][] = [];
   const elevationValues: number[] = [];
@@ -131,8 +131,11 @@ gpxFileInput.addEventListener('change', async (e) => {
     }
   }
 
+  console.log(`📊 Extracted ${latLngValues.length} valid points`);
+
   // Trim arrays if they exceed MAX_GPX_POINTS
   if (latLngValues.length > MAX_GPX_POINTS) {
+    console.log(`⚡ Trimming points from ${latLngValues.length} to ${MAX_GPX_POINTS}`);
     const step = Math.floor(latLngValues.length / MAX_GPX_POINTS);
     const trimmedLatLng = latLngValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);
     const trimmedElevation = elevationValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);
@@ -167,7 +170,7 @@ exportButton.addEventListener("click", async  () => {
     ...defaultParams,
     ...parseFormData(new FormData(controls))
   };
-  const model = createGpxMiniature(params);
+  const model = await createGpxMiniature(params);
   const dimensions = `${params.width}x${params.plateDepth}x${params.thickness}`;
   const blob = await exportTo3MF(model, dimensions);
   const url = URL.createObjectURL(blob);
