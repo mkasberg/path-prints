@@ -24,28 +24,51 @@ function halfAngleDifference(a2: number, a1: number): number {
 }
 
 async function createSlantedSegment(edgeLen: number, edgeWidth: number, h0: number, h1: number) {
+  console.log('📐 Creating slanted segment:', { edgeLen, edgeWidth, h0, h1 });
   const { Manifold, CrossSection } = await getManifoldInstance();
   
   // Create a cross section of the trapezoidal shape
-  const crossSection = new CrossSection([
+  const points = [
     [0, 0],       // bottom left
     [edgeLen, 0], // bottom right
     [edgeLen, h1], // top right
     [0, h0]       // top left
-  ]);
+  ];
+  console.log('📍 Creating cross section with points:', points);
+  const crossSection = new CrossSection(points);
+  console.log('✅ Cross section created successfully');
 
   // Extrude up Z, rotate to the proper orientation (+Z resting on thy XY plane),
   // and then translate to center on X axis.
-  return crossSection.extrude(edgeWidth).rotate([90, 0, 0]).translate([0, edgeWidth/2, 0]);
+  const extruded = crossSection.extrude(edgeWidth);
+  console.log('🔄 Extruded cross section');
+  const rotated = extruded.rotate([90, 0, 0]);
+  console.log('🔄 Rotated segment');
+  const translated = rotated.translate([0, edgeWidth/2, 0]);
+  console.log('➡️ Translated segment');
+  
+  return translated;
 }
 
 async function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number, y: number }[], elevation: number[]) {
+  console.log('🗺️ Creating map polyline with:', {
+    pointCount: scaledPoints.length,
+    elevationCount: elevation.length,
+    outBack: params.outBack
+  });
+  
   const { Manifold } = await getManifoldInstance();
   
   const maxIdx = Math.round((params.outBack / 100) * scaledPoints.length - 1);
   const elevationMin = Math.min(...elevation);
   const elevationDiff = Math.max(...elevation) - elevationMin;
   const mapPolylineHeight = Math.min(params.maxPolylineHeight, elevationDiff / 10);
+
+  console.log('📊 Elevation stats:', {
+    min: elevationMin,
+    diff: elevationDiff,
+    height: mapPolylineHeight
+  });
 
   const scaledElevation = elevation.map(e => 
     (e - elevationMin) * 0.95 * mapPolylineHeight / elevationDiff + 0.05 * mapPolylineHeight
@@ -54,6 +77,7 @@ async function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: 
   const parts: any[] = [];
   
   for (let i = 0; i < maxIdx - 1; i++) {
+    console.log(`🔄 Processing segment ${i + 1}/${maxIdx - 1}`);
     const p0 = scaledPoints[i];
     const p1 = scaledPoints[i + 1];
     const h0 = scaledElevation[i];
@@ -69,35 +93,48 @@ async function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: 
     const edgeWidth = 1;
     const edgeLen = Math.sqrt(dx * dx + dy * dy) + 0.01;
     
-    // All angles are in degrees! If a function returns radians, convert immediately.
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     const anglePrev = Math.atan2(dyPrev, dxPrev) * 180 / Math.PI;
     const angleNext = Math.atan2(dyNext, dxNext) * 180 / Math.PI;
 
+    console.log('📐 Segment geometry:', {
+      edgeLen,
+      angle,
+      anglePrev,
+      angleNext
+    });
+
     // Create the slanted segment
     let segment = await createSlantedSegment(edgeLen, edgeWidth, h0, h1);
+    console.log('✅ Created base segment');
 
     // Create cutting planes for joints
     if (i < maxIdx - 1) {
+      console.log('🔪 Creating next segment cutter');
       const nextCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
         .translate([0, -2 * edgeWidth, -1])
         .rotate([0, 0, halfAngleDifference(angleNext, angle)])
         .translate([edgeLen, 0, 0]);
       segment = segment.subtract(nextCutter);
+      console.log('✂️ Applied next segment cut');
     }
 
     if (i > 0) {
+      console.log('🔪 Creating previous segment cutter');
       const prevCutter = Manifold.cube([edgeWidth, edgeWidth * 4, mapPolylineHeight + 2])
         .translate([0, -2 * edgeWidth, -1])
         .rotate([0, 0, 180 - halfAngleDifference(angle, anglePrev)]);
       segment = segment.subtract(prevCutter);
+      console.log('✂️ Applied previous segment cut');
     }
 
     // Transform segment to world position
     segment = segment.rotate([0, 0, angle]).translate([p0.x, p0.y, 0]);
     parts.push(segment);
+    console.log('➡️ Added transformed segment to parts');
 
     // Create joint cylinder
+    console.log('🔧 Creating joint cylinder');
     let joint = Manifold.cylinder(h0, edgeWidth/2, edgeWidth/2, 12);
 
     // Cut joint with segment planes
@@ -105,20 +142,24 @@ async function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: 
       .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
       .rotate([0, 0, angle]);
     joint = joint.subtract(segmentCutter);
+    console.log('✂️ Cut joint with segment plane');
 
     if (i > 0) {
       const prevSegmentCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
         .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
         .rotate([0, 0, 180 + anglePrev]);
       joint = joint.subtract(prevSegmentCutter);
+      console.log('✂️ Cut joint with previous segment plane');
     }
 
     // Transform joint to world position
     joint = joint.translate([p0.x, p0.y, 0]);
     parts.push(joint);
+    console.log('➡️ Added joint to parts');
 
     // Add final cylinder at the end of the last segment
     if (i === maxIdx - 2) {
+      console.log('🔧 Creating final joint');
       let finalJoint = Manifold.cylinder(h1, edgeWidth/2, edgeWidth/2, 12);
       const finalCutter = Manifold.cube([edgeWidth, edgeWidth + 2, mapPolylineHeight + 0.002])
         .translate([0.001, -(edgeWidth + 2) / 2, -0.001])
@@ -126,16 +167,25 @@ async function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: 
       finalJoint = finalJoint.subtract(finalCutter);
       finalJoint = finalJoint.translate([p1.x, p1.y, 0]);
       parts.push(finalJoint);
+      console.log('✅ Added final joint');
     }
   }
 
+  console.log(`🎯 Completed polyline with ${parts.length} parts`);
   return parts.length > 0 ? Manifold.union(parts) : new Manifold();
 }
 
 async function createTextPlate(params: GpxMiniatureParams) {
+  console.log('📝 Creating text plate with params:', {
+    width: params.width,
+    plateDepth: params.plateDepth,
+    thickness: params.thickness
+  });
+  
   const { Manifold } = await getManifoldInstance();
   
   const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
+  console.log('📐 Text plate angle:', angle);
 
   // Create angled text surface by intersecting
   const textSurface = Manifold.intersection(
@@ -144,20 +194,29 @@ async function createTextPlate(params: GpxMiniatureParams) {
       .translate([0, 0, -params.thickness])
       .rotate([angle, 0, 0])
   )
+  console.log('✅ Created text surface');
 
   // Create text
+  console.log('📝 Creating 3D text');
   const text = (await create3DText(params.title, {
     fontSize: params.fontSize,
     thickness: params.textThickness
   }))
-    // TODO Center Text
     .translate([params.width * 0.1, params.plateDepth * 0.2, 0])
     .rotate([angle, 0, 0]);
+  console.log('✅ Created and positioned 3D text');
 
   return Manifold.union([textSurface, text]);
 }
 
 export async function createGpxMiniature(params: GpxMiniatureParams) {
+  console.log('🎨 Creating GPX miniature with params:', {
+    width: params.width,
+    plateDepth: params.plateDepth,
+    thickness: params.thickness,
+    pointCount: params.latLngValues.length
+  });
+  
   const { Manifold } = await getManifoldInstance();
   
   const maxSize = params.width - 2 * params.margin;
@@ -178,6 +237,12 @@ export async function createGpxMiniature(params: GpxMiniatureParams) {
   const mapHeight = pointsWidth > pointsHeight ? (pointsHeight / pointsWidth) * maxSize : maxSize;
   const scale = mapWidth / pointsWidth;
   
+  console.log('📊 Map dimensions:', {
+    width: mapWidth,
+    height: mapHeight,
+    scale
+  });
+  
   // Scale points
   const scaledPoints = points.map(p => ({
     x: (p.x - pointsXMin) * scale,
@@ -185,14 +250,18 @@ export async function createGpxMiniature(params: GpxMiniatureParams) {
   }));
   
   // Create base plate
+  console.log('🏗️ Creating base plate');
   const base = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
   
   // Create text plate
+  console.log('📝 Creating text plate');
   const textPlate = await createTextPlate(params);
 
   // Create map polyline
+  console.log('🗺️ Creating map polyline');
   const polyline = await createMapPolyline(params, scaledPoints, params.elevationValues);
+  console.log('🔄 Transforming polyline');
   const transformedPolyline = polyline
     .translate([-mapWidth/2, -mapHeight/2, 0])
     .rotate([0, 0, params.mapRotation])
@@ -202,6 +271,7 @@ export async function createGpxMiniature(params: GpxMiniatureParams) {
       params.thickness - 0.001
     ]);
 
+  console.log('🎯 Unifying final model');
   return Manifold.union([base, textPlate, transformedPolyline]);
 }
 
