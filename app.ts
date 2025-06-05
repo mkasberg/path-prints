@@ -21,16 +21,12 @@ interface GpxMiniatureParams {
 // Initialize the preview
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
 const updateMiniature = setupPreview(canvas);
-// Render initial preview with default params
-updateMiniature(defaultParams);
 
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
 // Get all range inputs
 const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => !input.classList.contains('value-display'));
-// todo - I have a tip somewhere on an easy way to split this into two arrays
 const displayInputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => input.classList.contains('value-display'));
-
 
 function parseFormData(data: FormData) {
   const params: Record<string, any> = {};
@@ -45,7 +41,6 @@ function parseFormData(data: FormData) {
   }
   return params as GpxMiniatureParams;
 }
-
 
 function displayValues(params: GpxMiniatureParams) {
   for(const input of inputs) {
@@ -98,9 +93,9 @@ function restoreState() {
       input.value = value.toString();
     }
   }
-  // trigger an input event to update the values
-  const event = new Event('input', { bubbles: true });
-  controls.dispatchEvent(event);
+  // Update display values and miniature directly instead of triggering an input event
+  displayValues(params);
+  updateMiniature(params);
 }
 
 // Enable URL state restoration
