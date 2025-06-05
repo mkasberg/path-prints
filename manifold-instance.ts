@@ -1,15 +1,25 @@
 import Module from 'manifold-3d';
 
-let manifoldInstance: { Manifold: any; CrossSection: any } | null = null;
+// Single promise that will be reused for all initialization requests
+let initPromise: Promise<{ Manifold: any; CrossSection: any }> | null = null;
 
 export async function getManifoldInstance() {
-  if (!manifoldInstance) {
-    const wasm = await Module();
-    wasm.setup();
-    manifoldInstance = {
-      Manifold: wasm.Manifold,
-      CrossSection: wasm.CrossSection
-    };
+  if (!initPromise) {
+    // Create the promise only once
+    initPromise = (async () => {
+      try {
+        const wasm = await Module();
+        wasm.setup();
+        return {
+          Manifold: wasm.Manifold,
+          CrossSection: wasm.CrossSection
+        };
+      } catch (error) {
+        // If initialization fails, clear the promise so it can be retried
+        initPromise = null;
+        throw error;
+      }
+    })();
   }
-  return manifoldInstance;
+  return initPromise;
 }
