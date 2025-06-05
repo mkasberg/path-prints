@@ -15,13 +15,12 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
+  color: string;
 }
 
 // Initialize the preview
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
 const updateMiniature = setupPreview(canvas);
-// Render initial preview with default params
-updateMiniature(defaultParams);
 
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
@@ -79,10 +78,9 @@ function updateUrl() {
   history.pushState({}, '', `?${url.toString()}`);
 }
 
-
-// Temporarily disable form handling
-// controls.addEventListener("input", handleInput);
-// controls.addEventListener("change", updateUrl);
+// Enable form handling
+controls.addEventListener("input", handleInput);
+controls.addEventListener("change", updateUrl);
 
 // On page load, check if there is a url param and parse it
 function restoreState() {
@@ -98,15 +96,13 @@ function restoreState() {
       input.value = value.toString();
     }
   }
-  // trigger an input event to update the values
-  const event = new Event('input', { bubbles: true });
-  controls.dispatchEvent(event);
+  // Update display values and miniature directly instead of triggering an input event
+  displayValues(params);
+  updateMiniature(params);
 }
 
-
-// Temporarily disable URL state restoration
-// restoreState();
-
+// Enable URL state restoration
+restoreState();
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {

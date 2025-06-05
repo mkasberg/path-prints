@@ -3,25 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Printable Power Brick Bracket Designer</title>
+    <title>GPX Miniature Generator</title>
     <!-- Open Graph Tags -->
     <meta
       property="og:title"
-      content="3D Printable Power Brick Bracket Designer"
+      content="GPX Miniature Generator"
     />
     <meta
       property="og:description"
-      content="Generate custom 3D printable power brick brackets for your devices. Design and export your own mounting solutions."
+      content="Generate custom 3D printable GPX activity path miniatures. Turn your activities into physical mementos."
     />
     <meta property="og:image" content="./assets/og.png" />
     <meta property="og:url" content="" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Bracket Engineer" />
+    <meta property="og:site_name" content="GPX Miniature" />
     <!-- Twitter Card Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="./assets/og.png" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="icon" href="https://fav.farm/👨‍🔬" />
+    <link rel="icon" href="https://fav.farm/🗺️" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -32,9 +32,9 @@
   <body>
     <div class="app">
       <header>
-        <h1>Bracket.Engineer</h1>
+        <h1>GPX Miniature</h1>
         <div>
-          <p>Generate 3D printable power brick brackets.</p>
+          <p>Generate 3D printable GPX activity path miniatures.</p>
           <p>
             Made by <a href="https://wesbos.com">Wes Bos</a> with ❤️.
             <a href="https://github.com/wesbos/bracket.engineer" target="_blank"
@@ -48,6 +48,33 @@
       </div>
       <form class="controls" id="controls">
         <div class="control-group">
+          <label for="title">Title</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value="Century *100*"
+          />
+        </div>
+        <div class="control-group">
+          <label for="mapRotation">Map Rotation</label>
+          <input
+            type="range"
+            id="mapRotation"
+            name="mapRotation"
+            min="-180"
+            max="180"
+            step="1"
+            value="0"
+          />
+          <input
+            type="number"
+            id="mapRotationValue"
+            class="value-display"
+            value="0"
+          />
+        </div>
+        <div class="control-group">
           <label for="width">Width</label>
           <input
             type="range"
@@ -56,174 +83,55 @@
             min="10"
             max="200"
             step="0.5"
-            value="86"
+            value="50"
           />
           <input
             type="number"
             id="widthValue"
             class="value-display"
-            value="57"
+            value="50"
           />
         </div>
         <div class="control-group">
-          <label for="height">Height</label>
+          <label for="thickness">Thickness</label>
           <input
             type="range"
-            id="height"
-            name="height"
-            min="5"
-            max="200"
-            step="0.5"
-            value="16"
-          />
-          <input
-            type="number"
-            id="heightValue"
-            class="value-display"
-            value="15"
-          />
-        </div>
-        <div class="control-group">
-          <label for="depth">Depth</label>
-          <input
-            type="range"
-            id="depth"
-            name="depth"
-            min="5"
-            max="200"
-            step="1"
-            value="25"
-          />
-          <input
-            type="number"
-            id="depthValue"
-            class="value-display"
-            value="33"
-          />
-        </div>
-
-        <div class="control-group">
-          <label for="bracketThickness">Body Thickness</label>
-          <input
-            type="range"
-            id="bracketThickness"
-            name="bracketThickness"
-            min="2"
-            max="10"
-            step="0.5"
-            value="3"
-          />
-          <input
-            type="number"
-            id="bracketThicknessValue"
-            class="value-display"
-            value="3"
-          />
-        </div>
-        <div class="control-group">
-          <label for="ribbingCount">Rib Count</label>
-          <input
-            type="range"
-            id="ribbingCount"
-            name="ribbingCount"
-            data-unit=""
-            min="0"
-            max="10"
-            step="1"
-            value="3"
-          />
-          <input
-            type="number"
-            id="ribbingCountValue"
-            class="value-display"
-            value="3"
-          />
-        </div>
-        <div class="control-group">
-          <label for="ribbingThickness">Rib Thickness</label>
-          <input
-            type="range"
-            id="ribbingThickness"
-            name="ribbingThickness"
+            id="thickness"
+            name="thickness"
             min="1"
-            max="5"
+            max="20"
             step="0.5"
-            value="2"
+            value="5"
           />
           <input
             type="number"
-            id="ribbingThicknessValue"
+            id="thicknessValue"
             class="value-display"
-            value="2"
+            value="5"
           />
         </div>
         <div class="control-group">
-          <label for="holeDiameter">Hole Diameter</label>
+          <label for="maxPolylineHeight">Max Polyline Height</label>
           <input
             type="range"
-            id="holeDiameter"
-            name="holeDiameter"
-            min="0"
-            max="8"
-            step="0.5"
-            value="2"
-          />
-          <input
-            type="number"
-            id="holeDiameterValue"
-            class="value-display"
-            value="4"
-          />
-        </div>
-        <div class="control-group">
-          <label for="holeCount">Hole Count</label>
-          <input
-            type="range"
-            id="holeCount"
-            name="holeCount"
+            id="maxPolylineHeight"
+            name="maxPolylineHeight"
             min="1"
-            max="5"
+            max="100"
             step="1"
-            value="1"
+            value="20"
           />
           <input
             type="number"
-            id="holeCountValue"
+            id="maxPolylineHeightValue"
             class="value-display"
-            value="1"
+            value="20"
           />
         </div>
-        <div class="control-group">
-          <label for="earWidth">Ear Width</label>
-          <input
-            type="range"
-            id="earWidth"
-            name="earWidth"
-            min="5"
-            max="30"
-            step="1"
-            value="15"
-          />
-          <input
-            type="number"
-            id="earWidthValue"
-            class="value-display"
-            value="15"
-          />
-        </div>
-
         <div class="control-group collection">
           <div>
-            <input type="checkbox" id="hasBottom" name="hasBottom" />
-            <label for="hasBottom">Has Bottom</label>
-          </div>
-          <div>
-            <input type="checkbox" id="keyHole" name="keyHole" />
-            <label for="keyHole">Key Hole</label>
-          </div>
-          <div>
-            <label for="hasBottom">color</label>
-            <input type="color" id="color" name="color" value="#44ff00" />
+            <label for="color">Color</label>
+            <input type="color" id="color" name="color" value="#ff0090" />
           </div>
           <button type="button" id="export-button">Export 3MF</button>
         </div>
