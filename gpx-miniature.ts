@@ -17,6 +17,11 @@ interface GpxMiniatureParams {
   color: string;
 }
 
+interface GpxMiniatureComponents {
+  base: Manifold;
+  polyline: Manifold;
+}
+
 function halfAngleDifference(a2: number, a1: number): number {
   if (Math.abs(a2 - a1) < 180) return (a2 - a1) / 2;
   if (Math.abs(a2 - a1 - 360) < 180) return (a2 - a1 - 360) / 2;
@@ -151,7 +156,7 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
   return Manifold.union([textSurface, text]);
 }
 
-export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
+export async function createGpxMiniatureComponents(params: GpxMiniatureParams): Promise<GpxMiniatureComponents> {
   const maxSize = params.width - 2 * params.margin;
   
   // Convert lat/lng to points
@@ -177,11 +182,14 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
   }));
   
   // Create base plate
-  const base = Manifold.cube([params.width, params.width, params.thickness])
+  const basePlate = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
   
   // Create text plate
   const textPlate = await createTextPlate(params);
+
+  // Combine base and text plate
+  const base = Manifold.union([basePlate, textPlate]);
 
   // Create map polyline
   const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
@@ -191,9 +199,14 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
       params.margin + (params.width - 2 * params.margin) / 2,
       params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2,
       params.thickness - 0.001
-    ])
+    ]);
 
-  return Manifold.union([base, textPlate, polyline]);
+  return { base, polyline };
+}
+
+export async function createGpxMiniatureForExport(params: GpxMiniatureParams): Promise<Manifold> {
+  const components = await createGpxMiniatureComponents(params);
+  return Manifold.union([components.base, components.polyline]);
 }
 
 export const defaultParams: GpxMiniatureParams = {

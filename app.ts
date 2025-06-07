@@ -1,6 +1,6 @@
 import { exportTo3MF } from './export';
 import { setupPreview } from "./preview";
-import { createGpxMiniature, defaultParams } from "./gpx-miniature";
+import { createGpxMiniatureForExport, defaultParams } from "./gpx-miniature";
 
 interface GpxMiniatureParams {
   title: string;
@@ -110,7 +110,7 @@ exportButton.addEventListener("click", async  () => {
     ...defaultParams,
     ...parseFormData(new FormData(controls))
   };
-  const model = createGpxMiniature(params);
+  const model = await createGpxMiniatureForExport(params);
   const dimensions = `${params.width}x${params.plateDepth}x${params.thickness}`;
   const blob = await exportTo3MF(model, dimensions);
   const url = URL.createObjectURL(blob);
