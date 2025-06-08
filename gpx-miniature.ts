@@ -1,7 +1,7 @@
-import { Manifold, CrossSection } from './manifold-instance';
+import { getManifoldInstance } from './manifold-instance';
 import { create3DText } from './text-3d';
 
-interface GpxMiniatureParams {
+export interface GpxMiniatureParams {
   title: string;
   fontSize: number;
   outBack: number;
@@ -23,7 +23,9 @@ function halfAngleDifference(a2: number, a1: number): number {
   return (a2 - a1 + 360) / 2;
 }
 
-function createSlantedSegment(edgeLen: number, edgeWidth: number, h0: number, h1: number): Manifold {
+async function createSlantedSegment(edgeLen: number, edgeWidth: number, h0: number, h1: number) {
+  const { Manifold, CrossSection } = await getManifoldInstance();
+  
   // Create a cross section of the trapezoidal shape
   const crossSection = new CrossSection([
     [0, 0],       // bottom left
@@ -37,7 +39,9 @@ function createSlantedSegment(edgeLen: number, edgeWidth: number, h0: number, h1
   return crossSection.extrude(edgeWidth).rotate([90, 0, 0]).translate([0, edgeWidth/2, 0]);
 }
 
-function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number, y: number }[], elevation: number[]): Manifold {
+async function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number, y: number }[], elevation: number[]) {
+  const { Manifold } = await getManifoldInstance();
+  
   const maxIdx = Math.round((params.outBack / 100) * scaledPoints.length - 1);
   const elevationMin = Math.min(...elevation);
   const elevationDiff = Math.max(...elevation) - elevationMin;
@@ -47,7 +51,7 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     (e - elevationMin) * 0.95 * mapPolylineHeight / elevationDiff + 0.05 * mapPolylineHeight
   );
 
-  const parts: Manifold[] = [];
+  const parts: any[] = [];
   
   for (let i = 0; i < maxIdx - 1; i++) {
     const p0 = scaledPoints[i];
@@ -65,13 +69,12 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
     const edgeWidth = 1;
     const edgeLen = Math.sqrt(dx * dx + dy * dy) + 0.01;
     
-    // All angles are in degrees! If a function returns radians, convert immediately.
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
     const anglePrev = Math.atan2(dyPrev, dxPrev) * 180 / Math.PI;
     const angleNext = Math.atan2(dyNext, dxNext) * 180 / Math.PI;
 
     // Create the slanted segment
-    let segment = createSlantedSegment(edgeLen, edgeWidth, h0, h1);
+    let segment = await createSlantedSegment(edgeLen, edgeWidth, h0, h1);
 
     // Create cutting planes for joints
     if (i < maxIdx - 1) {
@@ -128,7 +131,9 @@ function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: number
   return parts.length > 0 ? Manifold.union(parts) : new Manifold();
 }
 
-async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
+async function createTextPlate(params: GpxMiniatureParams) {
+  const { Manifold } = await getManifoldInstance();
+  
   const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
 
   // Create angled text surface by intersecting
@@ -144,14 +149,15 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<Manifold> {
     fontSize: params.fontSize,
     thickness: params.textThickness
   }))
-    // TODO Center Text
     .translate([params.width * 0.1, params.plateDepth * 0.2, 0])
     .rotate([angle, 0, 0]);
 
   return Manifold.union([textSurface, text]);
 }
 
-export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Manifold> {
+export async function createGpxMiniature(params: GpxMiniatureParams) {
+  const { Manifold } = await getManifoldInstance();
+  
   const maxSize = params.width - 2 * params.margin;
   
   // Convert lat/lng to points
@@ -184,16 +190,17 @@ export async function createGpxMiniature(params: GpxMiniatureParams): Promise<Ma
   const textPlate = await createTextPlate(params);
 
   // Create map polyline
-  const polyline = createMapPolyline(params, scaledPoints, params.elevationValues)
+  const polyline = await createMapPolyline(params, scaledPoints, params.elevationValues);
+  const transformedPolyline = polyline
     .translate([-mapWidth/2, -mapHeight/2, 0])
     .rotate([0, 0, params.mapRotation])
     .translate([
       params.margin + (params.width - 2 * params.margin) / 2,
       params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2,
       params.thickness - 0.001
-    ])
+    ]);
 
-  return Manifold.union([base, textPlate, polyline]);
+  return Manifold.union([base, textPlate, transformedPolyline]);
 }
 
 export const defaultParams: GpxMiniatureParams = {

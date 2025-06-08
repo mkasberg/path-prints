@@ -1,4 +1,4 @@
-import { Manifold, CrossSection } from './manifold-instance';
+import { getManifoldInstance } from './manifold-instance';
 import opentype from 'opentype.js';
 import RobotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff';
 
@@ -115,23 +115,26 @@ function extractContours(commands: opentype.PathCommand[]): Array<Array<[number,
 export async function create3DText(
   text: string,
   options: TextOptions = {}
-): Promise<Manifold> {
+): Promise<any> {
   const {
     fontSize = 72,
     thickness = 10
   } = options;
   
+  const { Manifold, CrossSection } = await getManifoldInstance();
   const font = await loadFont();
   const path = font.getPath(text, 0, 0, fontSize);
   
   const contours = extractContours(path.commands);
   
   if (contours.length === 0) {
-    console.warn('No valid contours found in text');
+    if (text.length > 0) {
+      console.warn('No valid contours found in text');
+    }
     return null;
   }
 
-  const manifolds: Manifold[] = [];
+  const manifolds: any[] = [];
   
   for (let i = 0; i < contours.length; i++) {
     const contour = contours[i];
