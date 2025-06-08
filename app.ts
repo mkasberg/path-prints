@@ -12,7 +12,9 @@ const controls = document.querySelector<HTMLFormElement>("#controls");
 
 // Get all range inputs
 const inputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => !input.classList.contains('value-display'));
+// todo - I have a tip somewhere on an easy way to split this into two arrays
 const displayInputs = Array.from(controls?.querySelectorAll<HTMLInputElement>("input") ?? []).filter(input => input.classList.contains('value-display'));
+
 
 function parseFormData(data: FormData) {
   const params: Record<string, any> = {};
@@ -27,6 +29,7 @@ function parseFormData(data: FormData) {
   }
   return params as GpxMiniatureParams;
 }
+
 
 function displayValues(params: GpxMiniatureParams) {
   for(const input of inputs) {
@@ -99,7 +102,6 @@ gpxFileInput.addEventListener('change', async (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
 
-  console.log('📂 Processing GPX file:', file.name);
   const text = await file.text();
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, 'text/xml');
@@ -112,8 +114,6 @@ gpxFileInput.addEventListener('change', async (e) => {
     XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
     null
   );
-
-  console.log(`📍 Found ${trackPoints.snapshotLength} track points`);
 
   const latLngValues: [number, number][] = [];
   const elevationValues: number[] = [];
@@ -131,11 +131,9 @@ gpxFileInput.addEventListener('change', async (e) => {
     }
   }
 
-  console.log(`📊 Extracted ${latLngValues.length} valid points`);
-
   // Trim arrays if they exceed MAX_GPX_POINTS
   if (latLngValues.length > MAX_GPX_POINTS) {
-    console.log(`⚡ Trimming points from ${latLngValues.length} to ${MAX_GPX_POINTS}`);
+    // TODO we might be able to use a better algorithm here than the LLM came up with
     const step = Math.floor(latLngValues.length / MAX_GPX_POINTS);
     const trimmedLatLng = latLngValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);
     const trimmedElevation = elevationValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);

@@ -128,7 +128,9 @@ export async function create3DText(
   const contours = extractContours(path.commands);
   
   if (contours.length === 0) {
-    console.warn('No valid contours found in text');
+    if (text.length > 0) {
+      console.warn('No valid contours found in text');
+    }
     return null;
   }
 
