@@ -101,6 +101,19 @@ a {
     gap: 50px;
     grid-column: 1 / -1;
   }
+  &.colors {
+    display: flex;
+    gap: 50px;
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+  &.buttons {
+    display: flex;
+    gap: 20px;
+    grid-column: 1 / -1;
+    justify-content: center;
+    margin-top: 10px;
+  }
   button {
     justify-self: end;
   }
