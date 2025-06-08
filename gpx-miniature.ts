@@ -14,7 +14,8 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
-  color: string;
+  baseColor: string;
+  polylineColor: string;
 }
 
 interface GpxMiniatureComponents {
@@ -222,5 +223,6 @@ export const defaultParams: GpxMiniatureParams = {
   textThickness: 2,
   margin: 2.5,
   maxPolylineHeight: 20,
-  color: "#fc5200"
+  baseColor: "#000000",
+  polylineColor: "#fc5200"
 };

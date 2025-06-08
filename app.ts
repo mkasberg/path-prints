@@ -15,7 +15,8 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
-  color: string;
+  baseColor: string;
+  polylineColor: string;
 }
 
 // Initialize the preview
@@ -53,8 +54,8 @@ function displayValues(params: GpxMiniatureParams) {
       label.value = `${input.value}`;
     }
   }
-  // Also pop the color on the root so we can use in css
-  document.documentElement.style.setProperty('--color', params.color);
+  // Also pop the polyline color on the root so we can use in css for site accent color
+  document.documentElement.style.setProperty('--color', params.polylineColor);
 }
 
 function handleInput(e: Event) {

@@ -17,7 +17,8 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
-  color: string;
+  baseColor: string;
+  polylineColor: string;
 }
 
 interface GpxMiniatureComponents {
@@ -78,14 +79,14 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Create materials with edge emphasis
   const baseMaterial = new MeshStandardMaterial({
-    color: defaultParams.color,
+    color: defaultParams.baseColor,
     roughness: 0.2,
     metalness: 0.0,
     flatShading: true
   });
 
   const polylineMaterial = new MeshStandardMaterial({
-    color: 0x00ff88, // Bright green for the polyline
+    color: defaultParams.polylineColor,
     roughness: 0.2,
     metalness: 0.0,
     flatShading: true
@@ -134,7 +135,8 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     }
 
     // Update material colors
-    baseMaterial.color.set(params.color);
+    baseMaterial.color.set(params.baseColor);
+    polylineMaterial.color.set(params.polylineColor);
 
     // Create new miniature components
     const components = await createGpxMiniatureComponents(params);
