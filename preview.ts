@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BufferAttribute, BufferGeometry, Mesh as ThreeMesh, MeshStandardMaterial, PerspectiveCamera, Scene, WebGLRenderer, GridHelper, AxesHelper } from 'three';
-import { createGpxMiniature, defaultParams } from './gpx-miniature.js';
+import { createGpxMiniatureComponents, defaultParams } from './gpx-miniature.js';
+import { Manifold } from './manifold-instance.js';
 
 interface GpxMiniatureParams {
   title: string;
@@ -16,7 +17,13 @@ interface GpxMiniatureParams {
   textThickness: number;
   margin: number;
   maxPolylineHeight: number;
-  color: string;
+  baseColor: string;
+  polylineColor: string;
+}
+
+interface GpxMiniatureComponents {
+  base: Manifold;
+  polyline: Manifold;
 }
 
 export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: GpxMiniatureParams) => void) {
@@ -70,21 +77,32 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
 
-  // Create material with edge emphasis
-  const material = new MeshStandardMaterial({
-    color: defaultParams.color,
+  // Create materials with edge emphasis
+  const baseMaterial = new MeshStandardMaterial({
+    color: defaultParams.baseColor,
     roughness: 0.2,
     metalness: 0.0,
     flatShading: true
   });
 
-  let miniatureMesh: ThreeMesh | null = null;
+  const polylineMaterial = new MeshStandardMaterial({
+    color: defaultParams.polylineColor,
+    roughness: 0.2,
+    metalness: 0.0,
+    flatShading: true
+  });
+
+  let baseMesh: ThreeMesh | null = null;
+  let polylineMesh: ThreeMesh | null = null;
 
   // Function to center and fit the object in view
   function centerAndFitObject() {
-    if (!miniatureMesh) return;
+    if (!baseMesh && !polylineMesh) return;
 
-    const box = new THREE.Box3().setFromObject(miniatureMesh);
+    const box = new THREE.Box3();
+    if (baseMesh) box.expandByObject(baseMesh);
+    if (polylineMesh) box.expandByObject(polylineMesh);
+
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
@@ -104,37 +122,68 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   }
 
   async function updateMiniature(params: GpxMiniatureParams) {
-    // Remove old mesh if it exists
-    if (miniatureMesh) {
-      scene.remove(miniatureMesh);
-      miniatureMesh.geometry.dispose();
+    // Remove old meshes if they exist
+    if (baseMesh) {
+      scene.remove(baseMesh);
+      baseMesh.geometry.dispose();
+      baseMesh = null;
+    }
+    if (polylineMesh) {
+      scene.remove(polylineMesh);
+      polylineMesh.geometry.dispose();
+      polylineMesh = null;
     }
 
-    // Update material color
-    material.color.set(params.color);
+    // Update material colors
+    baseMaterial.color.set(params.baseColor);
+    polylineMaterial.color.set(params.polylineColor);
 
-    // Create new miniature
-    const miniature = await createGpxMiniature(params);
+    // Create new miniature components
+    const components = await createGpxMiniatureComponents(params);
 
-    // Convert to Three.js geometry
-    const mesh = miniature.getMesh();
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', new BufferAttribute(mesh.vertProperties, 3));
-    geometry.setIndex(new BufferAttribute(mesh.triVerts, 1));
-    geometry.computeVertexNormals();
+    // Convert base to Three.js geometry
+    if (!components.base.isEmpty()) {
+      const baseMeshData = components.base.getMesh();
+      const baseGeometry = new BufferGeometry();
+      baseGeometry.setAttribute('position', new BufferAttribute(baseMeshData.vertProperties, 3));
+      baseGeometry.setIndex(new BufferAttribute(baseMeshData.triVerts, 1));
+      baseGeometry.computeVertexNormals();
 
-    // Create new mesh with shadows
-    miniatureMesh = new ThreeMesh(geometry, material);
-    miniatureMesh.castShadow = true;
-    miniatureMesh.receiveShadow = true;
-    
-    // Rotate the mesh to align with Three.js coordinate system
-    miniatureMesh.rotation.x = -Math.PI / 2;
+      // Create new base mesh with shadows
+      baseMesh = new ThreeMesh(baseGeometry, baseMaterial);
+      baseMesh.castShadow = true;
+      baseMesh.receiveShadow = true;
+      
+      // Rotate the mesh to align with Three.js coordinate system
+      baseMesh.rotation.x = -Math.PI / 2;
 
-    // Translate the mesh to the positive Z quadrant
-    miniatureMesh.position.z = params.width + params.plateDepth;
-    
-    scene.add(miniatureMesh);
+      // Translate the mesh to the positive Z quadrant
+      baseMesh.position.z = params.width + params.plateDepth;
+      
+      scene.add(baseMesh);
+    }
+
+    // Convert polyline to Three.js geometry
+    if (!components.polyline.isEmpty()) {
+      const polylineMeshData = components.polyline.getMesh();
+      const polylineGeometry = new BufferGeometry();
+      polylineGeometry.setAttribute('position', new BufferAttribute(polylineMeshData.vertProperties, 3));
+      polylineGeometry.setIndex(new BufferAttribute(polylineMeshData.triVerts, 1));
+      polylineGeometry.computeVertexNormals();
+
+      // Create new polyline mesh with shadows
+      polylineMesh = new ThreeMesh(polylineGeometry, polylineMaterial);
+      polylineMesh.castShadow = true;
+      polylineMesh.receiveShadow = true;
+      
+      // Rotate the mesh to align with Three.js coordinate system
+      polylineMesh.rotation.x = -Math.PI / 2;
+
+      // Translate the mesh to the positive Z quadrant
+      polylineMesh.position.z = params.width + params.plateDepth;
+      
+      scene.add(polylineMesh);
+    }
 
     centerAndFitObject();
   }

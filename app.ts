@@ -1,6 +1,6 @@
 import { exportTo3MF } from './export';
 import { setupPreview } from "./preview";
-import { createGpxMiniature, defaultParams, GpxMiniatureParams } from "./gpx-miniature";
+import { createGpxMiniatureForExport, defaultParams, GpxMiniatureParams } from "./gpx-miniature";
 
 const MAX_GPX_POINTS = 200;
 
@@ -42,8 +42,8 @@ function displayValues(params: GpxMiniatureParams) {
       label.value = `${input.value}`;
     }
   }
-  // Also pop the color on the root so we can use in css
-  document.documentElement.style.setProperty('--color', params.color);
+  // Also pop the polyline color on the root so we can use in css for site accent color
+  document.documentElement.style.setProperty('--color', params.polylineColor);
 }
 
 function handleInput(e: Event) {
@@ -155,7 +155,7 @@ gpxFileInput.addEventListener('change', async (e) => {
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {
-  const model = await createGpxMiniature(currentGpxParams);
+  const model = await createGpxMiniatureForExport(currentGpxParams);
   const dimensions = `${currentGpxParams.width}x${currentGpxParams.plateDepth}x${currentGpxParams.thickness}`;
   const blob = await exportTo3MF(model, dimensions);
   const url = URL.createObjectURL(blob);
