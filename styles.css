@@ -11,7 +11,7 @@
 }
 
 body {
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Roboto Mono", sans-serif;
   font-optical-sizing: auto;
   font-weight: 400;
   font-size: 18px;
@@ -36,7 +36,7 @@ header {
 
 h1 {
   font-size: 40px;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--color);
 }
 
@@ -159,7 +159,7 @@ input[type="text"] {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 5px;
   color: #fff;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Roboto Mono", sans-serif;
   font-size: 16px;
   outline: none;
   transition: all 0.2s ease;
@@ -242,12 +242,12 @@ button {
   background: none;
   cursor: pointer;
   color: white;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Roboto Mono", sans-serif;
   background: var(--color);
   padding: 5px 20px;
   border-radius: 5px;
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
   color: black;
 }
