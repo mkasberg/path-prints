@@ -169,21 +169,27 @@ export async function createGpxMiniatureComponents(params: GpxMiniatureParams): 
   // Convert lat/lng to points
   const points = params.latLngValues.map(([lat, lng]) => ({ x: lng, y: lat }));
   
-  // Calculate bounds
-  const pointsX = points.map(p => p.x);
-  const pointsY = points.map(p => p.y);
+  // Rotate all points about the origin to account for mapRotation
+  const rotationRad = params.mapRotation * Math.PI / 180;
+  const rotatedPoints = points.map(p => ({
+    x: p.x * Math.cos(rotationRad) - p.y * Math.sin(rotationRad),
+    y: p.x * Math.sin(rotationRad) + p.y * Math.cos(rotationRad)
+  }));
+  
+  // Calculate bounds using rotated points
+  const pointsX = rotatedPoints.map(p => p.x);
+  const pointsY = rotatedPoints.map(p => p.y);
   const pointsXMin = Math.min(...pointsX);
   const pointsYMin = Math.min(...pointsY);
   
   const pointsWidth = Math.max(...pointsX) - pointsXMin;
   const pointsHeight = Math.max(...pointsY) - pointsYMin;
   
-  const mapWidth = pointsWidth > pointsHeight ? maxSize : (pointsWidth / pointsHeight) * maxSize;
-  const mapHeight = pointsWidth > pointsHeight ? (pointsHeight / pointsWidth) * maxSize : maxSize;
-  const scale = mapWidth / pointsWidth;
+  // Calculate scale based on the rotated bounding box
+  const scale = maxSize / Math.max(pointsWidth, pointsHeight);
   
-  // Scale points
-  const scaledPoints = points.map(p => ({
+  // Scale points using rotated points
+  const scaledPoints = rotatedPoints.map(p => ({
     x: (p.x - pointsXMin) * scale,
     y: (p.y - pointsYMin) * scale
   }));
@@ -200,14 +206,13 @@ export async function createGpxMiniatureComponents(params: GpxMiniatureParams): 
 
   // Create map polyline
   const polyline = await createMapPolyline(params, scaledPoints, params.elevationValues);
+  
+  // Calculate translation to center the already rotated and scaled polyline
+  const translateX = (params.margin + (params.width - 2 * params.margin) / 2) - (pointsWidth * scale / 2);
+  const translateY = (params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2) - (pointsHeight * scale / 2);
+  
   const transformedPolyline = polyline
-    .translate([-mapWidth/2, -mapHeight/2, 0])
-    .rotate([0, 0, params.mapRotation])
-    .translate([
-      params.margin + (params.width - 2 * params.margin) / 2,
-      params.plateDepth + params.margin + (params.width - 2 * params.margin) / 2,
-      params.thickness - 0.001
-    ]);
+    .translate([translateX, translateY, params.thickness - 0.001]);
 
   return { base: base, polyline: transformedPolyline };
 }
