@@ -33,7 +33,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Create camera with a better initial position
   const camera = new PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.set(100, 100, 150);
+  camera.position.set(50, 100, 75);
   camera.lookAt(0, 0, 0);
 
   // Set up Three.js renderer with better quality settings
@@ -48,13 +48,13 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // Add grid helper with better visibility
-  const gridHelper = new GridHelper(800, 50, 0x444444, 0x444444);
+  const gridHelper = new GridHelper(200, 50, 0x444444, 0x444444);
   gridHelper.position.y = -0.01;
   scene.add(gridHelper);
 
   // Add axis helper
-  const axesHelper = new AxesHelper(50);
-  scene.add(axesHelper);
+  //const axesHelper = new AxesHelper(50);
+  //scene.add(axesHelper);
 
   // Edge-emphasizing lighting setup
   // Main light from top-right
@@ -65,7 +65,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Edge light from top-left
   const edgeLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  edgeLight.position.set(-100, 100, 0);
+  edgeLight.position.set(-50, 100, 75);
   scene.add(edgeLight);
 
   // Back light for depth
@@ -158,7 +158,8 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
       baseMesh.rotation.x = -Math.PI / 2;
 
       // Translate the mesh to the positive Z quadrant
-      baseMesh.position.z = params.width + params.plateDepth;
+      baseMesh.position.z = (params.width + params.plateDepth) / 2;
+      baseMesh.position.x = -params.width / 2;
       
       scene.add(baseMesh);
     }
@@ -180,7 +181,8 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
       polylineMesh.rotation.x = -Math.PI / 2;
 
       // Translate the mesh to the positive Z quadrant
-      polylineMesh.position.z = params.width + params.plateDepth;
+      polylineMesh.position.z = (params.width + params.plateDepth) / 2;
+      polylineMesh.position.x = -params.width / 2;
       
       scene.add(polylineMesh);
     }
