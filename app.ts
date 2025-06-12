@@ -162,6 +162,6 @@ exportButton.addEventListener("click", async  () => {
   // download the blob
   const a = document.createElement("a");
   a.href = url;
-  a.download = `gpx-miniature-${dimensions}.3mf`;
+  a.download = `${currentGpxParams.title}.3mf`;
   a.click();
 });
