@@ -28,6 +28,43 @@ interface GpxMiniatureComponents {
   text: Manifold;
 }
 
+/**
+ * Converts a Manifold object to a Three.js mesh with common transformations applied
+ */
+function manifoldToThreeMesh(
+  manifold: Manifold, 
+  material: MeshStandardMaterial, 
+  params: GpxMiniatureParams
+): ThreeMesh | null {
+  if (manifold.isEmpty()) {
+    return null;
+  }
+
+  // Get mesh data from manifold
+  const meshData = manifold.getMesh();
+  
+  // Create Three.js geometry
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(meshData.vertProperties, 3));
+  geometry.setIndex(new BufferAttribute(meshData.triVerts, 1));
+  geometry.computeVertexNormals();
+
+  // Create mesh with shadows enabled
+  const mesh = new ThreeMesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  
+  // Apply common transformations
+  // Rotate to align with Three.js coordinate system
+  mesh.rotation.x = -Math.PI / 2;
+
+  // Translate to the positive Z quadrant
+  mesh.position.z = (params.width + params.plateDepth) / 2;
+  mesh.position.x = -params.width / 2;
+
+  return mesh;
+}
+
 export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: GpxMiniatureParams) => void) {
   // Set up Three.js scene
   const scene = new Scene();
@@ -150,72 +187,20 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     // Create new miniature components
     const components = await createGpxMiniatureComponents(params);
 
-    // Convert base to Three.js geometry
-    if (!components.base.isEmpty()) {
-      const baseMeshData = components.base.getMesh();
-      const baseGeometry = new BufferGeometry();
-      baseGeometry.setAttribute('position', new BufferAttribute(baseMeshData.vertProperties, 3));
-      baseGeometry.setIndex(new BufferAttribute(baseMeshData.triVerts, 1));
-      baseGeometry.computeVertexNormals();
-
-      // Create new base mesh with shadows
-      baseMesh = new ThreeMesh(baseGeometry, baseMaterial);
-      baseMesh.castShadow = true;
-      baseMesh.receiveShadow = true;
-      
-      // Rotate the mesh to align with Three.js coordinate system
-      baseMesh.rotation.x = -Math.PI / 2;
-
-      // Translate the mesh to the positive Z quadrant
-      baseMesh.position.z = (params.width + params.plateDepth) / 2;
-      baseMesh.position.x = -params.width / 2;
-      
+    // Convert components to Three.js meshes using the helper function
+    baseMesh = manifoldToThreeMesh(components.base, baseMaterial, params);
+    if (baseMesh) {
       scene.add(baseMesh);
     }
 
-    // Convert polyline to Three.js geometry
-    if (!components.polyline.isEmpty()) {
-      const polylineMeshData = components.polyline.getMesh();
-      const polylineGeometry = new BufferGeometry();
-      polylineGeometry.setAttribute('position', new BufferAttribute(polylineMeshData.vertProperties, 3));
-      polylineGeometry.setIndex(new BufferAttribute(polylineMeshData.triVerts, 1));
-      polylineGeometry.computeVertexNormals();
-
-      // Create new polyline mesh with shadows
-      polylineMesh = new ThreeMesh(polylineGeometry, polylineMaterial);
-      polylineMesh.castShadow = true;
-      polylineMesh.receiveShadow = true;
-      
-      // Rotate the mesh to align with Three.js coordinate system
-      polylineMesh.rotation.x = -Math.PI / 2;
-
-      // Translate the mesh to the positive Z quadrant
-      polylineMesh.position.z = (params.width + params.plateDepth) / 2;
-      polylineMesh.position.x = -params.width / 2;
-      
+    polylineMesh = manifoldToThreeMesh(components.polyline, polylineMaterial, params);
+    if (polylineMesh) {
       scene.add(polylineMesh);
     }
 
-    // Convert text to Three.js geometry
-    if (!components.text.isEmpty()) {
-      const textMeshData = components.text.getMesh();
-      const textGeometry = new BufferGeometry();
-      textGeometry.setAttribute('position', new BufferAttribute(textMeshData.vertProperties, 3));
-      textGeometry.setIndex(new BufferAttribute(textMeshData.triVerts, 1));
-      textGeometry.computeVertexNormals();
-
-      // Create new text mesh with polyline material (same color as polyline)
-      textMesh = new ThreeMesh(textGeometry, polylineMaterial);
-      textMesh.castShadow = true;
-      textMesh.receiveShadow = true;
-      
-      // Rotate the mesh to align with Three.js coordinate system
-      textMesh.rotation.x = -Math.PI / 2;
-
-      // Translate the mesh to the positive Z quadrant
-      textMesh.position.z = (params.width + params.plateDepth) / 2;
-      textMesh.position.x = -params.width / 2;
-      
+    // Use polyline material for text to maintain the same color
+    textMesh = manifoldToThreeMesh(components.text, polylineMaterial, params);
+    if (textMesh) {
       scene.add(textMesh);
     }
 
