@@ -19,11 +19,13 @@ interface GpxMiniatureParams {
   maxPolylineHeight: number;
   baseColor: string;
   polylineColor: string;
+  slantedTextPlate: boolean;
 }
 
 interface GpxMiniatureComponents {
   base: Manifold;
   polyline: Manifold;
+  text: Manifold;
 }
 
 export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: GpxMiniatureParams) => void) {
@@ -94,14 +96,16 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   let baseMesh: ThreeMesh | null = null;
   let polylineMesh: ThreeMesh | null = null;
+  let textMesh: ThreeMesh | null = null;
 
   // Function to center and fit the object in view
   function centerAndFitObject() {
-    if (!baseMesh && !polylineMesh) return;
+    if (!baseMesh && !polylineMesh && !textMesh) return;
 
     const box = new THREE.Box3();
     if (baseMesh) box.expandByObject(baseMesh);
     if (polylineMesh) box.expandByObject(polylineMesh);
+    if (textMesh) box.expandByObject(textMesh);
 
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
@@ -132,6 +136,11 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
       scene.remove(polylineMesh);
       polylineMesh.geometry.dispose();
       polylineMesh = null;
+    }
+    if (textMesh) {
+      scene.remove(textMesh);
+      textMesh.geometry.dispose();
+      textMesh = null;
     }
 
     // Update material colors
@@ -185,6 +194,29 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
       polylineMesh.position.x = -params.width / 2;
       
       scene.add(polylineMesh);
+    }
+
+    // Convert text to Three.js geometry
+    if (!components.text.isEmpty()) {
+      const textMeshData = components.text.getMesh();
+      const textGeometry = new BufferGeometry();
+      textGeometry.setAttribute('position', new BufferAttribute(textMeshData.vertProperties, 3));
+      textGeometry.setIndex(new BufferAttribute(textMeshData.triVerts, 1));
+      textGeometry.computeVertexNormals();
+
+      // Create new text mesh with polyline material (same color as polyline)
+      textMesh = new ThreeMesh(textGeometry, polylineMaterial);
+      textMesh.castShadow = true;
+      textMesh.receiveShadow = true;
+      
+      // Rotate the mesh to align with Three.js coordinate system
+      textMesh.rotation.x = -Math.PI / 2;
+
+      // Translate the mesh to the positive Z quadrant
+      textMesh.position.z = (params.width + params.plateDepth) / 2;
+      textMesh.position.x = -params.width / 2;
+      
+      scene.add(textMesh);
     }
 
     centerAndFitObject();
