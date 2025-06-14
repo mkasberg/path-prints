@@ -158,6 +158,7 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<{ plate: Man
     // Get the bounding box of the text to calculate centering
     const textBounds = rawText.boundingBox();
     const textWidth = textBounds.max[0] - textBounds.min[0];
+    const textHeight = textBounds.max[1] - textBounds.min[1];
     
     // Calculate the X position to center the text horizontally
     const centeredX = (params.width - textWidth) / 2;
@@ -165,6 +166,7 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<{ plate: Man
     if (params.slantedTextPlate) {
       // Create slanted text plate (existing behavior)
       const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
+      const centeredY = (Math.sqrt(params.plateDepth * params.plateDepth + params.thickness * params.thickness) - textHeight) / 2;
 
       // Create angled text surface by intersecting
       textSurface = Manifold.intersection(
@@ -176,15 +178,16 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<{ plate: Man
 
       // Create text with rotation and centering
       text = rawText
-        .translate([centeredX, params.plateDepth * 0.2, 0])
+        .translate([centeredX, centeredY, 0])
         .rotate([angle, 0, 0]);
     } else {
+      const centeredY = (params.plateDepth - textHeight) / 2;
       // Create flat text plate
       textSurface = Manifold.cube([params.width, params.plateDepth, params.thickness]);
 
       // Create text without rotation but with centering
       text = rawText
-        .translate([centeredX, params.plateDepth * 0.2, params.thickness]);
+        .translate([centeredX, centeredY, params.thickness]);
     }
   }
 
@@ -256,7 +259,7 @@ export async function createGpxMiniatureForExport(params: GpxMiniatureParams): P
 
 export const defaultParams: GpxMiniatureParams = {
   title: "Lookout MTN",
-  fontSize: 3.5,
+  fontSize: 5.5,
   truncatePct: 100,
   mapRotation: -109,
   elevationValues: [1829,1830.4,1833.4,1836.8,1839.4,1842.4,1846.2,1849.6,1853,1855.4,1859,1861.8,1865.2,1869.8,1874,1876.6,1880,1884,1888.8,1891.4,1894,1897.2,1901.2,1903.8,1906.8,1910.4,1913.8,1916.2,1920.4,1923.2,1924.6,1926.2,1929.2,1932.4,1935.2,1939.4,1943.6,1947.2,1950,1954.2,1957.6,1961.4,1966.6,1972.2,1975,1979.6,1982.8,1986.6,1990,1991.4,1995.4,1999.8,2003.6,2007.8,2012.2,2015.2,2018.4,2021.4,2025.8,2029.6,2032,2035,2037.4,2040.6,2042.8,2045.4,2048.2,2052,2056.2,2061.4,2064.8,2068.2,2072.4,2076.2,2079.4,2082.6,2086.6,2091.8,2094.6,2097.8,2102.2,2105.6,2109.8,2113.8,2116.2,2120,2122.4,2125.6,2127.2,2131,2134.8,2138.4,2142.6,2146.2,2150.4,2154.4,2158.4,2162,2166.2,2170,2173.6,2177.2,2180.6,2185.4,2189.2,2191.2,2195.4,2198.4,2198.8,2195.2,2195.4,2199.6,2203,2206.2,2208.6,2209.2],
