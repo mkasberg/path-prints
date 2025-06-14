@@ -57,6 +57,10 @@ function handleInput(e: Event) {
   const data = new FormData(controls);
   const formParams = parseFormData(data);
   
+  // Explicitly handle the slantedTextPlate checkbox
+  const slantedTextPlateCheckbox = document.getElementById('slantedTextPlate') as HTMLInputElement;
+  formParams.slantedTextPlate = slantedTextPlateCheckbox.checked;
+  
   // Merge form parameters with current state, preserving GPX data
   currentGpxParams = {
     ...currentGpxParams,
@@ -69,6 +73,7 @@ function handleInput(e: Event) {
 
 // Enable form handling
 controls.addEventListener("input", handleInput);
+controls.addEventListener("change", handleInput); // Also listen for change events (important for checkboxes)
 
 // On page load, restore state from defaults
 function restoreState() {
@@ -76,7 +81,11 @@ function restoreState() {
   for(const [key, value] of Object.entries(currentGpxParams)) {
     const input = document.getElementById(key) as HTMLInputElement;
     if(input) {
-      input.value = value.toString();
+      if(input.type === 'checkbox') {
+        input.checked = Boolean(value);
+      } else {
+        input.value = value.toString();
+      }
     }
   }
   // Update display values and miniature directly
