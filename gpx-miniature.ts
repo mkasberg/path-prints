@@ -145,35 +145,47 @@ async function createTextPlate(params: GpxMiniatureParams): Promise<{ plate: Man
   let textSurface: Manifold;
   let text: Manifold;
 
-  if (params.slantedTextPlate) {
-    // Create slanted text plate (existing behavior)
-    const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
+  // Create the text first to get its dimensions
+  const rawText = await create3DText(params.title, {
+    fontSize: params.fontSize,
+    thickness: params.textThickness
+  });
 
-    // Create angled text surface by intersecting
-    textSurface = Manifold.intersection(
-      Manifold.cube([params.width, params.plateDepth, params.thickness]),
-      Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
-        .translate([0, 0, -params.thickness])
-        .rotate([angle, 0, 0])
-    );
-
-    // Create text with rotation
-    text = (await create3DText(params.title, {
-      fontSize: params.fontSize,
-      thickness: params.textThickness
-    }))
-      .translate([params.width * 0.1, params.plateDepth * 0.2, 0])
-      .rotate([angle, 0, 0]);
+  if (!rawText || rawText.isEmpty()) {
+    // If text creation failed, return empty text
+    text = new Manifold();
   } else {
-    // Create flat text plate
-    textSurface = Manifold.cube([params.width, params.plateDepth, params.thickness]);
+    // Get the bounding box of the text to calculate centering
+    const textBounds = rawText.boundingBox();
+    const textWidth = textBounds.max[0] - textBounds.min[0];
+    
+    // Calculate the X position to center the text horizontally
+    const centeredX = (params.width - textWidth) / 2;
 
-    // Create text without rotation
-    text = (await create3DText(params.title, {
-      fontSize: params.fontSize,
-      thickness: params.textThickness
-    }))
-      .translate([params.width * 0.1, params.plateDepth * 0.2, params.thickness]);
+    if (params.slantedTextPlate) {
+      // Create slanted text plate (existing behavior)
+      const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
+
+      // Create angled text surface by intersecting
+      textSurface = Manifold.intersection(
+        Manifold.cube([params.width, params.plateDepth, params.thickness]),
+        Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
+          .translate([0, 0, -params.thickness])
+          .rotate([angle, 0, 0])
+      );
+
+      // Create text with rotation and centering
+      text = rawText
+        .translate([centeredX, params.plateDepth * 0.2, 0])
+        .rotate([angle, 0, 0]);
+    } else {
+      // Create flat text plate
+      textSurface = Manifold.cube([params.width, params.plateDepth, params.thickness]);
+
+      // Create text without rotation but with centering
+      text = rawText
+        .translate([centeredX, params.plateDepth * 0.2, params.thickness]);
+    }
   }
 
   return { plate: textSurface, text };
