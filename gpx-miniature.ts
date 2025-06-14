@@ -16,11 +16,13 @@ export interface GpxMiniatureParams {
   maxPolylineHeight: number;
   baseColor: string;
   polylineColor: string;
+  slantedTextPlate: boolean;
 }
 
 interface GpxMiniatureComponents {
   base: Manifold;
   polyline: Manifold;
+  text: Manifold;
 }
 
 function halfAngleDifference(a2: number, a1: number): number {
@@ -137,28 +139,44 @@ async function createMapPolyline(params: GpxMiniatureParams, scaledPoints: { x: 
   return parts.length > 0 ? Manifold.union(parts) : new Manifold();
 }
 
-async function createTextPlate(params: GpxMiniatureParams) {
+async function createTextPlate(params: GpxMiniatureParams): Promise<{ plate: Manifold, text: Manifold }> {
   const { Manifold } = await getManifoldInstance();
   
-  const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
+  let textSurface: Manifold;
+  let text: Manifold;
 
-  // Create angled text surface by intersecting
-  const textSurface = Manifold.intersection(
-    Manifold.cube([params.width, params.plateDepth, params.thickness]),
-    Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
-      .translate([0, 0, -params.thickness])
-      .rotate([angle, 0, 0])
-  )
+  if (params.slantedTextPlate) {
+    // Create slanted text plate (existing behavior)
+    const angle = Math.atan(params.thickness / params.plateDepth) * 180 / Math.PI;
 
-  // Create text
-  const text = (await create3DText(params.title, {
-    fontSize: params.fontSize,
-    thickness: params.textThickness
-  }))
-    .translate([params.width * 0.1, params.plateDepth * 0.2, 0])
-    .rotate([angle, 0, 0]);
+    // Create angled text surface by intersecting
+    textSurface = Manifold.intersection(
+      Manifold.cube([params.width, params.plateDepth, params.thickness]),
+      Manifold.cube([params.width, 2 * params.plateDepth, params.thickness])
+        .translate([0, 0, -params.thickness])
+        .rotate([angle, 0, 0])
+    );
 
-  return Manifold.union([textSurface, text]);
+    // Create text with rotation
+    text = (await create3DText(params.title, {
+      fontSize: params.fontSize,
+      thickness: params.textThickness
+    }))
+      .translate([params.width * 0.1, params.plateDepth * 0.2, 0])
+      .rotate([angle, 0, 0]);
+  } else {
+    // Create flat text plate
+    textSurface = Manifold.cube([params.width, params.plateDepth, params.thickness]);
+
+    // Create text without rotation
+    text = (await create3DText(params.title, {
+      fontSize: params.fontSize,
+      thickness: params.textThickness
+    }))
+      .translate([params.width * 0.1, params.plateDepth * 0.2, params.thickness]);
+  }
+
+  return { plate: textSurface, text };
 }
 
 export async function createGpxMiniatureComponents(params: GpxMiniatureParams): Promise<GpxMiniatureComponents> {
@@ -198,8 +216,8 @@ export async function createGpxMiniatureComponents(params: GpxMiniatureParams): 
   const basePlate = Manifold.cube([params.width, params.width, params.thickness])
     .translate([0, params.plateDepth, 0]);
   
-  // Create text plate
-  const textPlate = await createTextPlate(params);
+  // Create text plate and text
+  const { plate: textPlate, text } = await createTextPlate(params);
 
   // Combine base and text plate
   const base = Manifold.union([basePlate, textPlate]);
@@ -214,14 +232,14 @@ export async function createGpxMiniatureComponents(params: GpxMiniatureParams): 
   const transformedPolyline = polyline
     .translate([translateX, translateY, params.thickness - 0.001]);
 
-  return { base: base, polyline: transformedPolyline };
+  return { base, polyline: transformedPolyline, text };
 }
 
 export async function createGpxMiniatureForExport(params: GpxMiniatureParams): Promise<Manifold> {
   const { Manifold } = await getManifoldInstance();
 
   const components = await createGpxMiniatureComponents(params);
-  return Manifold.union([components.base, components.polyline]);
+  return Manifold.union([components.base, components.polyline, components.text]);
 }
 
 export const defaultParams: GpxMiniatureParams = {
@@ -238,5 +256,6 @@ export const defaultParams: GpxMiniatureParams = {
   margin: 2.5,
   maxPolylineHeight: 20,
   baseColor: "#000000",
-  polylineColor: "#fc5200"
+  polylineColor: "#fc5200",
+  slantedTextPlate: true
 };
