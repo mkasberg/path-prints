@@ -1,22 +1,15 @@
 import { exportTo3MF } from './export';
 import { setupPreview } from "./preview";
-import { createBracket, defaultParams } from "./psu-bracket";
+import { createGpxMiniatureForExport, defaultParams, GpxMiniatureParams } from "./gpx-miniature";
 
-interface BracketParams {
-  width: number;
-  depth: number;
-  height: number;
-  bracketThickness: number;
-  ribbingCount: number;
-  ribbingThickness: number;
-  holeDiameter: number;
-  earWidth: number;
-  hasBottom: boolean;
-}
+const MAX_GPX_POINTS = 200;
+
+// Global state for current parameters
+let currentGpxParams: GpxMiniatureParams = { ...defaultParams };
 
 // Initialize the preview
 const canvas = document.getElementById("preview") as HTMLCanvasElement;
-const updateBracket = setupPreview(canvas);
+const updateMiniature = setupPreview(canvas);
 
 const controls = document.querySelector<HTMLFormElement>("#controls");
 
@@ -37,20 +30,20 @@ function parseFormData(data: FormData) {
       params[key] = isNaN(maybeNumber) ? value : maybeNumber;
     }
   }
-  return params as BracketParams;
+  return params as GpxMiniatureParams;
 }
 
 
-function displayValues(params: BracketParams) {
+function displayValues(params: GpxMiniatureParams) {
   for(const input of inputs) {
-    const label = input.nextElementSibling as HTMLDivElement;
+    const label = input.nextElementSibling as HTMLInputElement;
     const unit = input.getAttribute("data-unit") ?? 'mm';
     if(label && label.classList.contains('value-display')) {
       label.value = `${input.value}`;
     }
   }
-  // Also pop the color on the root so we can use in css
-  document.documentElement.style.setProperty('--color', params.color);
+  // Also pop the polyline color on the root so we can use in css for site accent color
+  document.documentElement.style.setProperty('--color', params.polylineColor);
 }
 
 function handleInput(e: Event) {
@@ -59,57 +52,125 @@ function handleInput(e: Event) {
     const input = e.target.previousElementSibling as HTMLInputElement;
     input.value = e.target.value;
   }
+  
+  // Parse form data and merge with current state to preserve GPX data
   const data = new FormData(controls);
-  const params = parseFormData(data);
-  displayValues(params);
-  updateBracket(params);
+  const formParams = parseFormData(data);
+  
+  // Explicitly handle the slantedTextPlate checkbox
+  const slantedTextPlateCheckbox = document.getElementById('slantedTextPlate') as HTMLInputElement;
+  formParams.slantedTextPlate = slantedTextPlateCheckbox.checked;
+  
+  // Merge form parameters with current state, preserving GPX data
+  currentGpxParams = {
+    ...currentGpxParams,
+    ...formParams
+  };
+  
+  displayValues(currentGpxParams);
+  updateMiniature(currentGpxParams);
 }
 
-function updateUrl() {
-  const data = new FormData(controls);
-  const url = new URLSearchParams(data);
-  history.pushState({}, '', `?${url.toString()}`);
-}
-
-
+// Enable form handling
 controls.addEventListener("input", handleInput);
-controls.addEventListener("change", updateUrl);
+controls.addEventListener("change", handleInput); // Also listen for change events (important for checkboxes)
 
-// On page load, check if there is a url param and parse it
+// On page load, restore state from defaults
 function restoreState() {
-
-  const url = new URLSearchParams(window.location.search);
-  const params = {
-    defaultParams,
-    ...parseFormData(url)
-  }
-  // Merge in any defaults
-  // Restore any params from the URL
-  for(const [key, value] of Object.entries(params)) {
+  // Restore any params from the current state
+  for(const [key, value] of Object.entries(currentGpxParams)) {
     const input = document.getElementById(key) as HTMLInputElement;
     if(input) {
-      input.value = value.toString();
+      if(input.type === 'checkbox') {
+        input.checked = Boolean(value);
+      } else {
+        input.value = value.toString();
+      }
     }
   }
-  // trigger an input event to update the values
-  const event = new Event('input', { bubbles: true });
-  controls.dispatchEvent(event);
+  // Update display values and miniature directly
+  displayValues(currentGpxParams);
+  updateMiniature(currentGpxParams);
 }
 
-
+// Enable state restoration
 restoreState();
 
+// GPX file handling
+const gpxFileInput = document.getElementById('gpxFile') as HTMLInputElement;
+const importGpxButton = document.getElementById('importGpxButton') as HTMLButtonElement;
+
+importGpxButton.addEventListener('click', () => {
+  gpxFileInput.click();
+});
+
+gpxFileInput.addEventListener('change', async (e) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const text = await file.text();
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, 'text/xml');
+
+  // Get all track points using local-name()
+  const trackPoints = xmlDoc.evaluate(
+    '//*[local-name()="trkpt"]',
+    xmlDoc,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+
+  const latLngValues: [number, number][] = [];
+  const elevationValues: number[] = [];
+
+  // Extract lat/lon and elevation data
+  for (let i = 0; i < trackPoints.snapshotLength; i++) {
+    const trkpt = trackPoints.snapshotItem(i) as Element;
+    const lat = parseFloat(trkpt.getAttribute('lat'));
+    const lon = parseFloat(trkpt.getAttribute('lon'));
+    const ele = parseFloat(trkpt.querySelector('ele')?.textContent || '0');
+
+    if (!isNaN(lat) && !isNaN(lon) && !isNaN(ele)) {
+      latLngValues.push([lat, lon]);
+      elevationValues.push(ele);
+    }
+  }
+
+  // Trim arrays if they exceed MAX_GPX_POINTS
+  if (latLngValues.length > MAX_GPX_POINTS) {
+    // TODO we might be able to use a better algorithm here than the LLM came up with
+    const step = Math.floor(latLngValues.length / MAX_GPX_POINTS);
+    const trimmedLatLng = latLngValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);
+    const trimmedElevation = elevationValues.filter((_, i) => i % step === 0).slice(0, MAX_GPX_POINTS);
+
+    // Update global state with trimmed data
+    currentGpxParams = {
+      ...currentGpxParams,
+      latLngValues: trimmedLatLng,
+      elevationValues: trimmedElevation
+    };
+  } else {
+    // Update global state with the original data
+    currentGpxParams = {
+      ...currentGpxParams,
+      latLngValues,
+      elevationValues
+    };
+  }
+
+  updateMiniature(currentGpxParams);
+});
 
 const exportButton = document.getElementById("export-button") as HTMLButtonElement;
 exportButton.addEventListener("click", async  () => {
-  const params = parseFormData(new FormData(controls));
-  const model = createBracket(params);
-  const dimensions = `${params.width}x${params.depth}x${params.height}`;
+  const model = await createGpxMiniatureForExport(currentGpxParams);
+  const dimensions = `${currentGpxParams.width}x${currentGpxParams.plateDepth}x${currentGpxParams.thickness}`;
   const blob = await exportTo3MF(model, dimensions);
   const url = URL.createObjectURL(blob);
   // download the blob
   const a = document.createElement("a");
   a.href = url;
-  a.download = `bracket-${dimensions}.3mf`;
+  a.download = `${currentGpxParams.title}.3mf`;
   a.click();
 });

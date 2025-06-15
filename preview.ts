@@ -1,26 +1,78 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { BufferAttribute, BufferGeometry, Mesh as ThreeMesh, MeshStandardMaterial, PerspectiveCamera, Scene, WebGLRenderer, GridHelper, AxesHelper } from 'three';
-import { createBracket, defaultParams } from './psu-bracket.js';
+import { createGpxMiniatureComponents, defaultParams } from './gpx-miniature.js';
+import { Manifold } from './manifold-instance.js';
 
-interface BracketParams {
+interface GpxMiniatureParams {
+  title: string;
+  fontSize: number;
+  truncatePct: number;
+  mapRotation: number;
+  elevationValues: number[];
+  latLngValues: [number, number][];
   width: number;
-  depth: number;
-  height: number;
-  holeDiameter: number;
-  holeOffset: number;
-  earWidth: number;
+  plateDepth: number;
+  thickness: number;
+  textThickness: number;
+  margin: number;
+  maxPolylineHeight: number;
+  baseColor: string;
+  polylineColor: string;
+  slantedTextPlate: boolean;
 }
 
+interface GpxMiniatureComponents {
+  base: Manifold;
+  polyline: Manifold;
+  text: Manifold;
+}
 
-export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: BracketParams) => void) {
+/**
+ * Converts a Manifold object to a Three.js mesh with common transformations applied
+ */
+function manifoldToThreeMesh(
+  manifold: Manifold, 
+  material: MeshStandardMaterial, 
+  params: GpxMiniatureParams
+): ThreeMesh | null {
+  if (manifold.isEmpty()) {
+    return null;
+  }
+
+  // Get mesh data from manifold
+  const meshData = manifold.getMesh();
+  
+  // Create Three.js geometry
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(meshData.vertProperties, 3));
+  geometry.setIndex(new BufferAttribute(meshData.triVerts, 1));
+  geometry.computeVertexNormals();
+
+  // Create mesh with shadows enabled
+  const mesh = new ThreeMesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  
+  // Apply common transformations
+  // Rotate to align with Three.js coordinate system
+  mesh.rotation.x = -Math.PI / 2;
+
+  // Translate to the positive Z quadrant
+  mesh.position.z = (params.width + params.plateDepth) / 2;
+  mesh.position.x = -params.width / 2;
+
+  return mesh;
+}
+
+export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params: GpxMiniatureParams) => void) {
   // Set up Three.js scene
   const scene = new Scene();
   scene.background = new THREE.Color(0x1a1a1a);
 
   // Create camera with a better initial position
   const camera = new PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.set(100, 100, 150);
+  camera.position.set(50, 100, 75);
   camera.lookAt(0, 0, 0);
 
   // Set up Three.js renderer with better quality settings
@@ -35,13 +87,13 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   // Add grid helper with better visibility
-  const gridHelper = new GridHelper(800, 50, 0x444444, 0x444444);
+  const gridHelper = new GridHelper(200, 50, 0x444444, 0x444444);
   gridHelper.position.y = -0.01;
   scene.add(gridHelper);
 
   // Add axis helper
-  const axesHelper = new AxesHelper(50);
-  scene.add(axesHelper);
+  //const axesHelper = new AxesHelper(50);
+  //scene.add(axesHelper);
 
   // Edge-emphasizing lighting setup
   // Main light from top-right
@@ -52,7 +104,7 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
 
   // Edge light from top-left
   const edgeLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  edgeLight.position.set(-100, 100, 0);
+  edgeLight.position.set(-50, 100, 75);
   scene.add(edgeLight);
 
   // Back light for depth
@@ -64,21 +116,34 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
 
-  // Create material with edge emphasis
-  const material = new MeshStandardMaterial({
-    color: 0xff0090,
+  // Create materials with edge emphasis
+  const baseMaterial = new MeshStandardMaterial({
+    color: defaultParams.baseColor,
     roughness: 0.2,
     metalness: 0.0,
     flatShading: true
   });
 
-  let bracketMesh: ThreeMesh | null = null;
+  const polylineMaterial = new MeshStandardMaterial({
+    color: defaultParams.polylineColor,
+    roughness: 0.2,
+    metalness: 0.0,
+    flatShading: true
+  });
+
+  let baseMesh: ThreeMesh | null = null;
+  let polylineMesh: ThreeMesh | null = null;
+  let textMesh: ThreeMesh | null = null;
 
   // Function to center and fit the object in view
   function centerAndFitObject() {
-    if (!bracketMesh) return;
+    if (!baseMesh && !polylineMesh && !textMesh) return;
 
-    const box = new THREE.Box3().setFromObject(bracketMesh);
+    const box = new THREE.Box3();
+    if (baseMesh) box.expandByObject(baseMesh);
+    if (polylineMesh) box.expandByObject(polylineMesh);
+    if (textMesh) box.expandByObject(textMesh);
+
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
@@ -97,33 +162,48 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
     controls.update();
   }
 
-  // Function to update the bracket
-  function updateBracket(params: BracketParams) {
-    // Remove old mesh if it exists
-    if (bracketMesh) {
-      scene.remove(bracketMesh);
-      bracketMesh.geometry.dispose();
+  async function updateMiniature(params: GpxMiniatureParams) {
+    // Remove old meshes if they exist
+    if (baseMesh) {
+      scene.remove(baseMesh);
+      baseMesh.geometry.dispose();
+      baseMesh = null;
+    }
+    if (polylineMesh) {
+      scene.remove(polylineMesh);
+      polylineMesh.geometry.dispose();
+      polylineMesh = null;
+    }
+    if (textMesh) {
+      scene.remove(textMesh);
+      textMesh.geometry.dispose();
+      textMesh = null;
     }
 
-    material.color.set(params.color);
+    // Update material colors
+    baseMaterial.color.set(params.baseColor);
+    polylineMaterial.color.set(params.polylineColor);
 
-    // Create new bracket
-    const bracket = createBracket(params);
+    // Create new miniature components
+    const components = await createGpxMiniatureComponents(params);
 
-    // Convert to Three.js geometry
-    const mesh = bracket.getMesh();
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', new BufferAttribute(mesh.vertProperties, 3));
-    geometry.setIndex(new BufferAttribute(mesh.triVerts, 1));
-    geometry.computeVertexNormals();
+    // Convert components to Three.js meshes using the helper function
+    baseMesh = manifoldToThreeMesh(components.base, baseMaterial, params);
+    if (baseMesh) {
+      scene.add(baseMesh);
+    }
 
-    // Create new mesh with shadows
-    bracketMesh = new ThreeMesh(geometry, material);
-    bracketMesh.castShadow = true;
-    bracketMesh.receiveShadow = true;
-    scene.add(bracketMesh);
+    polylineMesh = manifoldToThreeMesh(components.polyline, polylineMaterial, params);
+    if (polylineMesh) {
+      scene.add(polylineMesh);
+    }
 
-    // Center and fit the object
+    // Use polyline material for text to maintain the same color
+    textMesh = manifoldToThreeMesh(components.text, polylineMaterial, params);
+    if (textMesh) {
+      scene.add(textMesh);
+    }
+
     centerAndFitObject();
   }
 
@@ -154,17 +234,11 @@ export function setupPreview(canvas: HTMLCanvasElement, onParamsChange?: (params
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
-
-    // Add constant rotation around X axis
-    // const rotationSpeed = 0.005; // Adjust this value to change rotation speed
-    // camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationSpeed);
-    // camera.lookAt(0, 0, 0);
-
     renderer.render(scene, camera);
   }
 
   animate();
 
-  // Return function to update the bracket
-  return updateBracket;
+  // Return function to update the miniature
+  return updateMiniature;
 }
