@@ -1,12 +1,12 @@
 import { getManifoldInstance } from './manifold-instance';
 import opentype from 'opentype.js';
-import RobotoRegular from '@fontsource/roboto/files/roboto-latin-900-normal.woff';
+import Barlow from '@fontsource/barlow/files/barlow-latin-900-normal.woff';
 
 let fontPromise: Promise<opentype.Font> | null = null;
 
 async function loadFont(): Promise<opentype.Font> {
   if (!fontPromise) {
-    fontPromise = fetch(RobotoRegular)
+    fontPromise = fetch(Barlow)
       .then(response => response.arrayBuffer())
       .then(buffer => opentype.parse(buffer));
   }
