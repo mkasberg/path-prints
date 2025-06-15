@@ -7,7 +7,7 @@ import { Manifold } from './manifold-instance.js';
 interface GpxMiniatureParams {
   title: string;
   fontSize: number;
-  outBack: number;
+  truncatePct: number;
   mapRotation: number;
   elevationValues: number[];
   latLngValues: [number, number][];
