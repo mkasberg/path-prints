@@ -1,6 +1,6 @@
 import { getManifoldInstance } from './manifold-instance';
 import opentype from 'opentype.js';
-import RobotoRegular from '@fontsource/roboto/files/roboto-latin-400-normal.woff';
+import RobotoRegular from '@fontsource/roboto/files/roboto-latin-900-normal.woff';
 
 let fontPromise: Promise<opentype.Font> | null = null;
 
